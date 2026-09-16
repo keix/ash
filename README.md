@@ -32,3 +32,7 @@ The initial execution model is threaded and deliberately simple.
 JIT compilation is an optimization of that execution model, not a separate language or runtime. Hot Forth words may later be translated into native code while preserving the same semantics.
 
 The boundary should remain small, explicit, and replaceable.
+
+## License
+Copyright KEI SAWAMURA 2026.  
+Ash is licensed under the MIT License. Copying and modifying is encouraged and appreciated.
