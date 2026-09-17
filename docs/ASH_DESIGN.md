@@ -1,4 +1,4 @@
-# Ash Design Note
+# The Design of Ash
 
 This document describes the design of the C kernel and its boundary with the Forth layer.
 
