@@ -42,6 +42,11 @@ cell_t pop(vm_t *vm);
 void   rpush(vm_t *vm, cell_t x);
 cell_t rpop(vm_t *vm);
 
+/* exec.c */
+void docol(vm_t *vm, xt_t xt);
+void do_exit(vm_t *vm, xt_t xt);
+void execute(vm_t *vm, xt_t xt);
+
 /* dict.c */
 void          align_here(vm_t *vm);
 void         *allot(vm_t *vm, size_t n);
