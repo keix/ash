@@ -2,14 +2,17 @@ CC     ?= cc
 CFLAGS  = -std=c11 -Wall -Wextra -pedantic
 
 SRC := $(wildcard src/*.c)
-OBJ := $(SRC:.c=.o)
+OBJ := $(SRC:src/%.c=build/%.o)
 
 all: $(OBJ)
 
-%.o: %.c src/ash.h
+build/%.o: src/%.c src/ash.h | build
 	$(CC) $(CFLAGS) -c $< -o $@
 
+build:
+	mkdir -p build
+
 clean:
-	rm -f $(OBJ) ash
+	rm -rf build ash
 
 .PHONY: all clean
