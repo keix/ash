@@ -34,6 +34,29 @@ Ash is built around three explicit boundaries: semantic, execution, and optimiza
 
 See [docs/ASH_DESIGN.md](docs/ASH_DESIGN.md) for the execution model, dictionary layout, threaded interpreter, and C/Forth bootstrapping boundary.
 
+## Development
+
+A Nix development shell is recommended for a reproducible environment.
+
+```sh
+nix develop
+```
+
+Ash is built with `make`.
+
+```sh
+make
+```
+
+The default compiler is `cc`. Both GCC and Clang should be supported.
+
+```sh
+make CC=gcc
+make CC=clang
+```
+
+The project targets C11 and POSIX and avoids compiler-specific extensions where possible.
+
 ## License
 
 Copyright KEI SAWAMURA 2026.  
