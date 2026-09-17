@@ -12,6 +12,22 @@ Like ash left after a fire, the kernel is what remains after everything unnecess
 
 A small C kernel. The rest is Forth.
 
+## Platform
+
+Ash is implemented in C11 and targets POSIX systems.
+
+The threaded interpreter and core runtime are intended to be portable across supported POSIX environments.
+
+JIT compilation is architecture-specific. The initial JIT target is x86_64.
+
+```
+Implementation language: C11
+Runtime platform:        POSIX
+Initial JIT target:      x86_64
+```
+
+Forth semantics remain independent of the underlying JIT architecture.
+
 ## Design
 
 Ash is built around three explicit boundaries: semantic, execution, and optimization.
