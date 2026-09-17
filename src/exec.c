@@ -6,27 +6,31 @@
    execute() plants it, docol saves it like any other ip, and the
    outermost exit pops it back, ending the loop. */
 
-void docol(vm_t *vm, xt_t xt)
+void
+docol (vm_t *vm, xt_t xt)
 {
-    rpush(vm, (cell_t)vm->ip);
-    vm->ip = (xt_t *)(xt + 1);
+  rpush (vm, (cell_t)vm->ip);
+  vm->ip = (xt_t *)(xt + 1);
 }
 
-void do_exit(vm_t *vm, xt_t xt)
+void
+do_exit (vm_t *vm, xt_t xt)
 {
-    (void)xt;
-    vm->ip = (xt_t *)rpop(vm);
+  (void)xt;
+  vm->ip = (xt_t *)rpop (vm);
 }
 
-void execute(vm_t *vm, xt_t xt)
+void
+execute (vm_t *vm, xt_t xt)
 {
-    xt_t *saved = vm->ip;
+  xt_t *saved = vm->ip;
 
-    vm->ip = NULL;
-    (*(code_t *)xt)(vm, xt);
-    while (vm->ip) {
-        xt_t w = *vm->ip++;
-        (*(code_t *)w)(vm, w);
+  vm->ip = NULL;
+  (*(code_t *)xt) (vm, xt);
+  while (vm->ip)
+    {
+      xt_t w = *vm->ip++;
+      (*(code_t *)w) (vm, w);
     }
-    vm->ip = saved;
+  vm->ip = saved;
 }
