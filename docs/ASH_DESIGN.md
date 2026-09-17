@@ -26,7 +26,9 @@ The whole of Ash can be explained by three boundaries:
 └──────────────────────────────────────────┘
 ```
 
-Above the semantic boundary, text is only cut into tokens — no meaning is assigned. Meaning appears when the outer interpreter maps a token to an xt or a number. The execution boundary separates deciding *what* to run from running it. The optimization boundary is where a JIT may later replace threaded dispatch with native code, without changing anything above it.
+Above the semantic boundary, text is only cut into tokens — no meaning is assigned. Meaning appears when the outer interpreter maps a token to an xt or a number. The execution boundary separates deciding *what* to run from running it. The optimization boundary is where the JIT replaces threaded dispatch with native code, without changing anything above it.
+
+The JIT is part of Ash's essential scope, not an optional extension. Its position below the optimization boundary describes the architecture — what it is allowed to touch — not its priority. The boundary defers *when* native code appears, never *whether*: everything below it is designed so that swapping threaded dispatch for native code is a planned move, not a rewrite.
 
 ## Standard target
 
