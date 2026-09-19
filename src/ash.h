@@ -53,7 +53,8 @@ struct vm
   input_source_t src[SOURCE_DEPTH];
   cell_t src_depth; /* src[src_depth] is the active source */
 
-  xt_t xt_lit; /* compiled by literals in compile state */
+  xt_t xt_lit;  /* compiled by literals in compile state */
+  xt_t xt_exit; /* compiled by ; */
 };
 
 /* stack.c */
