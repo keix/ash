@@ -50,6 +50,9 @@ void docol (vm_t *vm, xt_t xt);
 void do_exit (vm_t *vm, xt_t xt);
 void execute (vm_t *vm, xt_t xt);
 
+/* prims.c */
+void register_prims (vm_t *vm);
+
 /* dict.c */
 void align_here (vm_t *vm);
 void *allot (vm_t *vm, size_t n);
