@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "ash.h"
 
@@ -27,6 +28,13 @@ main (void)
   vm.base = 10;
 
   register_prims (&vm);
+
+  if (isatty (STDIN_FILENO))
+    fputs ("Ash, Copyright (C) 2026 KEI SAWAMURA\n"
+           "Ash is licensed under the MIT License.\n"
+           "Copying and modifying is encouraged and appreciated. "
+           "Type `bye' to exit\n",
+           stdout);
 
   while (fgets (tib, sizeof tib, stdin))
     {
