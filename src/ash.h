@@ -40,6 +40,8 @@ struct vm
 {
   cell_t *dsp;
   cell_t *rsp;
+  cell_t *dsp0; /* empty-stack values: ABORT/QUIT reset points */
+  cell_t *rsp0;
   xt_t *ip;
 
   uint8_t *here;
@@ -50,6 +52,8 @@ struct vm
 
   input_source_t src[SOURCE_DEPTH];
   cell_t src_depth; /* src[src_depth] is the active source */
+
+  xt_t xt_lit; /* compiled by literals in compile state */
 };
 
 /* stack.c */
@@ -68,6 +72,11 @@ input_source_t *active_source (vm_t *vm);
 void push_source (vm_t *vm, const char *buf, cell_t len, cell_t source_id);
 void pop_source (vm_t *vm);
 const char *next_token (vm_t *vm, size_t *len);
+
+/* interp.c */
+int parse_number (vm_t *vm, const char *tok, size_t len, cell_t *out);
+void interpret_token (vm_t *vm, const char *tok, size_t len);
+void interpret_source (vm_t *vm);
 
 /* prims.c */
 void register_prims (vm_t *vm);
