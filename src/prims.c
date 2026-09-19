@@ -145,6 +145,53 @@ prim_bye (vm_t *vm, xt_t xt)
   exit (0);
 }
 
+/* defining and parsing words */
+
+static void
+prim_colon (vm_t *vm, xt_t xt)
+{
+  size_t len;
+  const char *name = next_token (vm, &len);
+  dict_entry_t *w;
+
+  (void)xt;
+  if (!name)
+    {
+      fprintf (stderr, ": needs a name\n");
+      return;
+    }
+  w = dict_header (vm, name, len);
+  w->flags |= F_HIDDEN;
+  *entry_xt (w) = (cell_t)docol;
+  vm->state = -1;
+}
+
+static void
+prim_semi (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  comma (vm, (cell_t)vm->xt_exit);
+  vm->latest->flags &= ~F_HIDDEN;
+  vm->state = 0;
+}
+
+static void
+prim_immediate (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  vm->latest->flags |= F_IMMEDIATE;
+}
+
+static void
+prim_backslash (vm_t *vm, xt_t xt)
+{
+  input_source_t *src = active_source (vm);
+
+  (void)xt;
+  while (src->in < src->len && src->buf[src->in] != '\n')
+    src->in++;
+}
+
 void
 register_prims (vm_t *vm)
 {
@@ -161,8 +208,15 @@ register_prims (vm_t *vm)
   defprim (vm, "mod", prim_mod);
 
   defprim (vm, ".", prim_dot);
-  defprim (vm, "exit", do_exit);
   defprim (vm, "bye", prim_bye);
 
   vm->xt_lit = defprim (vm, "lit", prim_lit);
+  vm->xt_exit = defprim (vm, "exit", do_exit);
+
+  defprim (vm, ":", prim_colon);
+  defprim (vm, ";", prim_semi);
+  vm->latest->flags |= F_IMMEDIATE;
+  defprim (vm, "immediate", prim_immediate);
+  defprim (vm, "\\", prim_backslash);
+  vm->latest->flags |= F_IMMEDIATE;
 }
