@@ -12,7 +12,10 @@ build/%.o: src/%.c src/ash.h | build
 build:
 	mkdir -p build
 
+format:
+	clang-format -i src/*.c src/*.h
+
 clean:
 	rm -rf build ash
 
-.PHONY: all clean
+.PHONY: all format clean
