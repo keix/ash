@@ -26,6 +26,16 @@ typedef struct dict_entry
   char name[];
 } dict_entry_t;
 
+#define SOURCE_DEPTH 8
+
+typedef struct
+{
+  const char *buf;
+  cell_t len;
+  cell_t in;        /* >IN: parse position within buf */
+  cell_t source_id; /* 0 = terminal, -1 = string, else fileid */
+} input_source_t;
+
 struct vm
 {
   cell_t *dsp;
@@ -37,6 +47,9 @@ struct vm
 
   cell_t state;
   cell_t base;
+
+  input_source_t src[SOURCE_DEPTH];
+  cell_t src_depth; /* src[src_depth] is the active source */
 };
 
 /* stack.c */
@@ -49,6 +62,12 @@ cell_t rpop (vm_t *vm);
 void docol (vm_t *vm, xt_t xt);
 void do_exit (vm_t *vm, xt_t xt);
 void execute (vm_t *vm, xt_t xt);
+
+/* token.c */
+input_source_t *active_source (vm_t *vm);
+void push_source (vm_t *vm, const char *buf, cell_t len, cell_t source_id);
+void pop_source (vm_t *vm);
+const char *next_token (vm_t *vm, size_t *len);
 
 /* prims.c */
 void register_prims (vm_t *vm);
