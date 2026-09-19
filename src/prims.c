@@ -4,11 +4,21 @@
 
 #include "ash.h"
 
-static void
+static xt_t
 defprim (vm_t *vm, const char *name, code_t code)
 {
   xt_t xt = entry_xt (dict_header (vm, name, strlen (name)));
   *xt = (cell_t)code;
+  return xt;
+}
+
+/* threaded dispatch */
+
+static void
+prim_lit (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, (cell_t)*vm->ip++);
 }
 
 /* stack manipulation */
@@ -153,4 +163,6 @@ register_prims (vm_t *vm)
   defprim (vm, ".", prim_dot);
   defprim (vm, "exit", do_exit);
   defprim (vm, "bye", prim_bye);
+
+  vm->xt_lit = defprim (vm, "lit", prim_lit);
 }
