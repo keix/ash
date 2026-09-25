@@ -110,6 +110,89 @@ prim_mod (vm_t *vm, xt_t xt)
   push (vm, pop (vm) % b);
 }
 
+/* comparison: Forth flags, -1 true and 0 false */
+
+static void
+prim_eq (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  cell_t b = pop (vm);
+  push (vm, pop (vm) == b ? -1 : 0);
+}
+
+static void
+prim_lt (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  cell_t b = pop (vm);
+  push (vm, pop (vm) < b ? -1 : 0);
+}
+
+static void
+prim_gt (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  cell_t b = pop (vm);
+  push (vm, pop (vm) > b ? -1 : 0);
+}
+
+static void
+prim_zeq (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, pop (vm) == 0 ? -1 : 0);
+}
+
+/* memory and data space */
+
+static void
+prim_fetch (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, *(cell_t *)pop (vm));
+}
+
+static void
+prim_store (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  cell_t *addr = (cell_t *)pop (vm);
+  *addr = pop (vm);
+}
+
+static void
+prim_here (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, (cell_t)vm->here);
+}
+
+static void
+prim_comma (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  comma (vm, pop (vm));
+}
+
+/* branching: the cell after the branch xt is an absolute target */
+
+static void
+prim_branch (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  vm->ip = (xt_t *)*vm->ip;
+}
+
+static void
+prim_0branch (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  if (pop (vm) == 0)
+    vm->ip = (xt_t *)*vm->ip;
+  else
+    vm->ip++;
+}
+
 /* I/O */
 
 static void
@@ -182,6 +265,43 @@ prim_immediate (vm_t *vm, xt_t xt)
   vm->latest->flags |= F_IMMEDIATE;
 }
 
+static dict_entry_t *
+parse_word (vm_t *vm, const char *who)
+{
+  size_t len;
+  const char *name = next_token (vm, &len);
+  dict_entry_t *w = name ? find_word (vm, name, len) : NULL;
+
+  if (!w)
+    fprintf (stderr, "%s: word not found: %.*s\n", who, name ? (int)len : 0,
+             name ? name : "");
+  return w;
+}
+
+static void
+prim_tick (vm_t *vm, xt_t xt)
+{
+  dict_entry_t *w = parse_word (vm, "'");
+
+  (void)xt;
+  if (w)
+    push (vm, (cell_t)entry_xt (w));
+}
+
+/* ['] : immediate; compile the parsed word's xt as a literal */
+static void
+prim_bracket_tick (vm_t *vm, xt_t xt)
+{
+  dict_entry_t *w = parse_word (vm, "[']");
+
+  (void)xt;
+  if (w)
+    {
+      comma (vm, (cell_t)vm->xt_lit);
+      comma (vm, (cell_t)entry_xt (w));
+    }
+}
+
 static void
 prim_backslash (vm_t *vm, xt_t xt)
 {
@@ -206,6 +326,23 @@ register_prims (vm_t *vm)
   defprim (vm, "*", prim_mul);
   defprim (vm, "/", prim_div);
   defprim (vm, "mod", prim_mod);
+
+  defprim (vm, "=", prim_eq);
+  defprim (vm, "<", prim_lt);
+  defprim (vm, ">", prim_gt);
+  defprim (vm, "0=", prim_zeq);
+
+  defprim (vm, "@", prim_fetch);
+  defprim (vm, "!", prim_store);
+  defprim (vm, "here", prim_here);
+  defprim (vm, ",", prim_comma);
+
+  defprim (vm, "branch", prim_branch);
+  defprim (vm, "0branch", prim_0branch);
+
+  defprim (vm, "'", prim_tick);
+  defprim (vm, "[']", prim_bracket_tick);
+  vm->latest->flags |= F_IMMEDIATE;
 
   defprim (vm, ".", prim_dot);
   defprim (vm, "bye", prim_bye);
