@@ -216,6 +216,55 @@ prim_0branch (vm_t *vm, xt_t xt)
     vm->ip++;
 }
 
+/* interpreter surface */
+
+/* Dispatch the code field once, without calling the C execute(): a
+   colon word just moves ip and the surrounding loop runs its body, so
+   C stack frames never nest. */
+static void
+prim_execute (vm_t *vm, xt_t xt)
+{
+  xt_t x = (xt_t)pop (vm);
+
+  (void)xt;
+  (*(code_t *)x) (vm, x);
+}
+
+/* ans find: c-addr -- c-addr 0 | xt 1 | xt -1 */
+static void
+prim_find (vm_t *vm, xt_t xt)
+{
+  cell_t a = pop (vm);
+  const uint8_t *s = (const uint8_t *)a;
+  dict_entry_t *w = find_word (vm, (const char *)s + 1, s[0]);
+
+  (void)xt;
+  if (!w)
+    {
+      push (vm, a);
+      push (vm, 0);
+    }
+  else
+    {
+      push (vm, (cell_t)entry_xt (w));
+      push (vm, (w->flags & F_IMMEDIATE) ? 1 : -1);
+    }
+}
+
+static void
+prim_state (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, (cell_t)&vm->state);
+}
+
+static void
+prim_to_in (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, (cell_t)&active_source (vm)->in);
+}
+
 /* I/O */
 
 static void
@@ -366,6 +415,11 @@ register_prims (vm_t *vm)
 
   defprim (vm, "branch", prim_branch);
   defprim (vm, "0branch", prim_0branch);
+
+  defprim (vm, "execute", prim_execute);
+  defprim (vm, "find", prim_find);
+  defprim (vm, "state", prim_state);
+  defprim (vm, ">in", prim_to_in);
 
   defprim (vm, "'", prim_tick);
   defprim (vm, "[']", prim_bracket_tick);

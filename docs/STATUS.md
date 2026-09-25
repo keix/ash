@@ -10,8 +10,8 @@ Update this file in the same commit that adds or moves a word.
 ## Scoreboard
 
 ```text
-ANS Core coverage   51 / 133
-  in C              28
+ANS Core coverage   55 / 133
+  in C              32
   in Forth          23
 beyond Core         12  (7 Forth, 5 C internals)
 ```
@@ -19,8 +19,9 @@ beyond Core         12  (7 Forth, 5 C internals)
 ## Core words implemented in C — the bootstrapping boundary
 
 ```text
-! ' * + , - . / 0= : ; < = > >r @
-dup drop exit here immediate mod over r> r@ rot swap [']
+! ' * + , - . / 0= : ; < = > >in >r @
+dup drop execute exit find here immediate mod over r> r@ rot
+state swap [']
 ```
 
 ## Core words implemented in Forth — core.fs
@@ -52,7 +53,7 @@ cell, and `state`/`postpone` exposure):
 
 ```text
 create does> variable constant >body
-postpone literal recurse [ ] state find execute
+postpone literal recurse [ ]
 ```
 
 Memory, characters, and data space:
@@ -72,11 +73,8 @@ and or xor invert lshift rshift
 Interpreter and system:
 
 ```text
->in source evaluate quit abort abort" environment? (
+source evaluate quit abort abort" environment? (
 ```
-
-Note: `execute`, `find`, `state`, and `>in` already exist inside the C
-kernel; they are missing only as dictionary words.
 
 ## Beyond Core
 
