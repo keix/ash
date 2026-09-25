@@ -37,6 +37,27 @@
 : until ['] 0branch , , ; immediate
 : again ['] branch , , ; immediate
 
+: while  ['] 0branch , here 0 , swap ; immediate
+: repeat ['] branch , , here swap ! ; immediate
+
+\ Counted loops compile everything inline, so the loop parameters sit
+\ directly on the return stack -- limit below, index on top -- with no
+\ helper word's return address between them. i and unloop compile
+\ inline for the same reason.
+
+: do   ['] swap , ['] >r , ['] >r , here ; immediate
+: loop
+  ['] r> , ['] 1+ , ['] r> , ['] 2dup , ['] = ,
+  ['] 0branch , here 0 ,
+  ['] drop , ['] drop ,
+  ['] branch , here 0 ,
+  swap here swap !
+  ['] >r , ['] >r , ['] branch , swap ,
+  here swap ! ; immediate
+
+: i      ['] r@ , ; immediate
+: unloop ['] r> , ['] drop , ['] r> , ['] drop , ; immediate
+
 \ derived from control flow
 
 : abs  dup 0< if negate then ;
