@@ -110,6 +110,29 @@ prim_mod (vm_t *vm, xt_t xt)
   push (vm, pop (vm) % b);
 }
 
+/* return stack */
+
+static void
+prim_tor (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  rpush (vm, pop (vm));
+}
+
+static void
+prim_fromr (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, rpop (vm));
+}
+
+static void
+prim_rfetch (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, *vm->rsp);
+}
+
 /* comparison: Forth flags, -1 true and 0 false */
 
 static void
@@ -326,6 +349,10 @@ register_prims (vm_t *vm)
   defprim (vm, "*", prim_mul);
   defprim (vm, "/", prim_div);
   defprim (vm, "mod", prim_mod);
+
+  defprim (vm, ">r", prim_tor);
+  defprim (vm, "r>", prim_fromr);
+  defprim (vm, "r@", prim_rfetch);
 
   defprim (vm, "=", prim_eq);
   defprim (vm, "<", prim_lt);
