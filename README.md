@@ -32,7 +32,7 @@ Forth semantics remain independent of the underlying JIT architecture.
 
 Ash is built around three explicit boundaries: semantic, execution, and optimization.
 
-See [docs/ASH_DESIGN.md](docs/ASH_DESIGN.md) for the execution model, dictionary layout, threaded interpreter, and C/Forth bootstrapping boundary.
+See [docs/DESIGN.md](docs/DESIGN.md) for the execution model, dictionary layout, threaded interpreter, and C/Forth bootstrapping boundary.
 
 ## Development
 
