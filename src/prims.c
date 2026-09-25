@@ -275,7 +275,7 @@ prim_dot (vm_t *vm, xt_t xt)
   char buf[8 * sizeof (cell_t) + 2];
   char *p = buf + sizeof buf;
   cell_t x = pop (vm);
-  uintmax_t base = (uintmax_t)vm->base;
+  uintmax_t base = (vm->base < 2 || vm->base > 36) ? 10 : (uintmax_t)vm->base;
   uintmax_t u = (uintmax_t)x;
 
   if (x < 0)
@@ -316,6 +316,14 @@ prim_colon (vm_t *vm, xt_t xt)
       return;
     }
   w = dict_header (vm, name, len);
+  if (!w)
+    {
+      input_source_t *src = active_source (vm);
+
+      fprintf (stderr, ": bad name\n");
+      src->in = src->len;
+      return;
+    }
   w->flags |= F_HIDDEN;
   *entry_xt (w) = (cell_t)docol;
   vm->state = -1;

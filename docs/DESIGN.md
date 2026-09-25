@@ -100,6 +100,8 @@ typedef void    (*code_t)(vm_t *vm, xt_t xt); /* code-field routine */
 
 This separation costs nothing now and pays off most once the JIT starts rewriting code fields.
 
+One assumption is explicit rather than hidden: Ash stores `code_t` function pointers in dictionary cells, and ISO C does not promise that a function pointer fits an integer cell. The stated platform — POSIX, x86_64 first — does promise it, so Ash declares the constraint with a `_Static_assert` in `ash.h` instead of complicating the dictionary layout to avoid it. The constraint is not the problem; hiding it would be.
+
 ```c
 typedef struct {
     const char *buf;       /* input buffer */
@@ -158,7 +160,7 @@ void interpret_token(vm_t *vm, const char *tok, size_t len) {
         if (vm->state && !(w->flags & F_IMMEDIATE))
             compile_cell(vm, (cell_t)xt(w));   /* append xt to current definition */
         else
-            execute(vm, xt(w));                /* immediate, or interpreting */
+            execute_from_c(vm, xt(w));         /* immediate, or interpreting */
     } else if (parse_number(tok, len, &n)) {   /* radix = BASE */
         if (vm->state) {
             compile_cell(vm, (cell_t)xt_lit);  /* compile LIT n */

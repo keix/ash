@@ -20,8 +20,12 @@ do_exit (vm_t *vm, xt_t xt)
   vm->ip = (xt_t *)rpop (vm);
 }
 
+/* The C -> Forth executor: enter threaded code from C and return when
+   it unwinds. This is NOT the VM-internal dispatch -- calling it from
+   inside running Forth would nest a C frame. The EXECUTE primitive
+   dispatches a code field directly instead. */
 void
-execute (vm_t *vm, xt_t xt)
+execute_from_c (vm_t *vm, xt_t xt)
 {
   xt_t *saved = vm->ip;
 
