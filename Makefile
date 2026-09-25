@@ -15,10 +15,17 @@ build/%.o: src/%.c src/ash.h | build
 build:
 	mkdir -p build
 
+test: ash
+	@fail=0; \
+	for t in test/*.fs; do \
+	  ./ash < $$t 2>&1 | diff -u $${t%.fs}.expected - || fail=1; \
+	done; \
+	if [ $$fail = 0 ]; then echo "all tests passed"; else exit 1; fi
+
 format:
 	clang-format -i src/*.c src/*.h
 
 clean:
 	rm -rf build ash
 
-.PHONY: all format clean
+.PHONY: all test format clean
