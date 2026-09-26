@@ -72,10 +72,19 @@ cell_t pop (vm_t *vm);
 void rpush (vm_t *vm, cell_t x);
 cell_t rpop (vm_t *vm);
 
+/* the execution boundary: one code-field dispatch */
+static inline void
+dispatch (vm_t *vm, xt_t xt)
+{
+  (*(code_t *)xt) (vm, xt);
+}
+
 /* exec.c */
 void docol (vm_t *vm, xt_t xt);
 void do_exit (vm_t *vm, xt_t xt);
-void execute_from_c (vm_t *vm, xt_t xt);
+void docreate (vm_t *vm, xt_t xt);
+void dodoes (vm_t *vm, xt_t xt);
+void run_xt (vm_t *vm, xt_t xt);
 
 /* token.c */
 input_source_t *active_source (vm_t *vm);

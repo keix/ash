@@ -64,3 +64,19 @@
 : min  2dup > if swap then drop ;
 : max  2dup < if swap then drop ;
 : ?dup dup if dup then ;
+
+\ defining words. does> compiles (does>), which patches the child's
+\ code field to dodoes and hands it the thread that follows.
+
+: does> ['] (does>) , ; immediate
+: variable create 0 , ;
+: constant create , does> @ ;
+
+\ the cell size, measured by forth itself: comma once, see how far
+\ here moved. costs one dead cell of data space.
+
+here 0 , here swap - constant cell
+
+: cells cell * ;
+: cell+ cell + ;
+: >body cell+ ;

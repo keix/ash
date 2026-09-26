@@ -59,6 +59,13 @@ prim_over (vm_t *vm, xt_t xt)
 }
 
 static void
+prim_depth (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, vm->dsp0 - vm->dsp);
+}
+
+static void
 prim_rot (vm_t *vm, xt_t xt)
 {
   (void)xt;
@@ -218,16 +225,13 @@ prim_0branch (vm_t *vm, xt_t xt)
 
 /* interpreter surface */
 
-/* Dispatch the code field once, without calling the C execute(): a
-   colon word just moves ip and the surrounding loop runs its body, so
-   C stack frames never nest. */
+/* One bare dispatch, not run_xt: a colon word just moves ip and the
+   surrounding loop runs its body, so C stack frames never nest. */
 static void
 prim_execute (vm_t *vm, xt_t xt)
 {
-  xt_t x = (xt_t)pop (vm);
-
   (void)xt;
-  (*(code_t *)x) (vm, x);
+  dispatch (vm, (xt_t)pop (vm));
 }
 
 /* ans find: c-addr -- c-addr 0 | xt 1 | xt -1 */
@@ -330,6 +334,45 @@ prim_colon (vm_t *vm, xt_t xt)
 }
 
 static void
+prim_create (vm_t *vm, xt_t xt)
+{
+  size_t len;
+  const char *name = next_token (vm, &len);
+  dict_entry_t *w;
+
+  (void)xt;
+  if (!name)
+    {
+      fprintf (stderr, "create needs a name\n");
+      return;
+    }
+  w = dict_header (vm, name, len);
+  if (!w)
+    {
+      input_source_t *src = active_source (vm);
+
+      fprintf (stderr, "create: bad name\n");
+      src->in = src->len;
+      return;
+    }
+  *entry_xt (w) = (cell_t)docreate;
+}
+
+/* (does>): patch the latest definition so it pushes its data field
+   and runs the thread after this word, then exit -- the rest of the
+   defining word's body belongs to the child. */
+static void
+prim_paren_does (vm_t *vm, xt_t xt)
+{
+  xt_t w = entry_xt (vm->latest);
+
+  (void)xt;
+  w[-1] = (cell_t)vm->ip;
+  *w = (cell_t)dodoes;
+  vm->ip = (xt_t *)rpop (vm);
+}
+
+static void
 prim_semi (vm_t *vm, xt_t xt)
 {
   (void)xt;
@@ -400,6 +443,7 @@ register_prims (vm_t *vm)
   defprim (vm, "swap", prim_swap);
   defprim (vm, "over", prim_over);
   defprim (vm, "rot", prim_rot);
+  defprim (vm, "depth", prim_depth);
 
   defprim (vm, "+", prim_add);
   defprim (vm, "-", prim_sub);
@@ -438,6 +482,9 @@ register_prims (vm_t *vm)
 
   vm->xt_lit = defprim (vm, "lit", prim_lit);
   vm->xt_exit = defprim (vm, "exit", do_exit);
+
+  defprim (vm, "create", prim_create);
+  defprim (vm, "(does>)", prim_paren_does);
 
   defprim (vm, ":", prim_colon);
   defprim (vm, ";", prim_semi);

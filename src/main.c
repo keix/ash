@@ -18,10 +18,13 @@ slurp (const char *path, cell_t *len)
 
   if (!f)
     return NULL;
-  fseek (f, 0, SEEK_END);
-  n = ftell (f);
-  rewind (f);
-  buf = malloc ((size_t)n);
+  if (fseek (f, 0, SEEK_END) != 0 || (n = ftell (f)) < 0
+      || fseek (f, 0, SEEK_SET) != 0)
+    {
+      fclose (f);
+      return NULL;
+    }
+  buf = malloc ((size_t)n + 1); /* +1: never malloc(0) */
   if (buf && fread (buf, 1, (size_t)n, f) != (size_t)n)
     {
       free (buf);

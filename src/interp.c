@@ -75,7 +75,7 @@ interpret_token (vm_t *vm, const char *tok, size_t len)
       if (vm->state && !(w->flags & F_IMMEDIATE))
         comma (vm, (cell_t)entry_xt (w));
       else
-        execute_from_c (vm, entry_xt (w));
+        run_xt (vm, entry_xt (w));
     }
   else if (parse_number (vm, tok, len, &n))
     {
