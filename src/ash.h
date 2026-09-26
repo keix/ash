@@ -10,6 +10,12 @@ typedef intptr_t cell_t;
 typedef cell_t *xt_t;
 typedef void (*code_t) (vm_t *vm, xt_t xt);
 
+/* Ash stores code_t function pointers in dictionary cells. ISO C does
+   not promise a function pointer fits an integer cell; the stated
+   platform (POSIX, x86_64 first) does. The assumption is explicit: */
+_Static_assert (sizeof (code_t) == sizeof (cell_t),
+                "a function pointer must fit in one cell");
+
 enum
 {
   F_IMMEDIATE = 1 << 0,
@@ -42,9 +48,12 @@ struct vm
   cell_t *rsp;
   cell_t *dsp0; /* empty-stack values: ABORT/QUIT reset points */
   cell_t *rsp0;
+  cell_t *dsp_lim; /* physical ends: the last usable cells */
+  cell_t *rsp_lim;
   xt_t *ip;
 
   uint8_t *here;
+  uint8_t *here_lim; /* physical end of the dictionary */
   dict_entry_t *latest;
 
   cell_t state;
@@ -66,7 +75,7 @@ cell_t rpop (vm_t *vm);
 /* exec.c */
 void docol (vm_t *vm, xt_t xt);
 void do_exit (vm_t *vm, xt_t xt);
-void execute (vm_t *vm, xt_t xt);
+void execute_from_c (vm_t *vm, xt_t xt);
 
 /* token.c */
 input_source_t *active_source (vm_t *vm);

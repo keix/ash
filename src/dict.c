@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "ash.h"
@@ -18,6 +20,12 @@ void *
 allot (vm_t *vm, size_t n)
 {
   uint8_t *p = vm->here;
+
+  if (vm->here_lim && n > (size_t)(vm->here_lim - vm->here))
+    {
+      fprintf (stderr, "dictionary full\n");
+      exit (1);
+    }
   vm->here += n;
   return p;
 }
@@ -38,10 +46,14 @@ entry_xt (dict_entry_t *w)
 }
 
 /* Lay down everything up to the code field. The does cell is 0 and the
-   code field is left 0: the caller decides the execution strategy. */
+   code field is left 0: the caller decides the execution strategy.
+   name_len is physically 8 bits; entry_xt() recomputes the layout from
+   it, so a longer name must be rejected here, not truncated. */
 dict_entry_t *
 dict_header (vm_t *vm, const char *name, size_t len)
 {
+  if (len == 0 || len > UINT8_MAX)
+    return NULL;
   align_here (vm);
   dict_entry_t *w = allot (vm, offsetof (dict_entry_t, name) + len);
   w->link = vm->latest;

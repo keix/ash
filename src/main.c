@@ -66,7 +66,10 @@ main (void)
 
   vm.dsp = vm.dsp0 = dstack + DSTACK_CELLS;
   vm.rsp = vm.rsp0 = rstack + RSTACK_CELLS;
+  vm.dsp_lim = dstack;
+  vm.rsp_lim = rstack;
   vm.here = dictionary;
+  vm.here_lim = dictionary + DICT_BYTES;
   vm.base = 10;
 
   register_prims (&vm);
