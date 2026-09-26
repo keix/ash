@@ -204,6 +204,28 @@ prim_comma (vm_t *vm, xt_t xt)
   comma (vm, pop (vm));
 }
 
+static void
+prim_cfetch (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, *(uint8_t *)pop (vm));
+}
+
+static void
+prim_cstore (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  uint8_t *addr = (uint8_t *)pop (vm);
+  *addr = (uint8_t)pop (vm);
+}
+
+static void
+prim_ccomma (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  *(uint8_t *)allot (vm, 1) = (uint8_t)pop (vm);
+}
+
 /* branching: the cell after the branch xt is an absolute target */
 
 static void
@@ -270,6 +292,20 @@ prim_to_in (vm_t *vm, xt_t xt)
 }
 
 /* I/O */
+
+static void
+prim_emit (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  fputc ((int)(uint8_t)pop (vm), stdout);
+}
+
+static void
+prim_key (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, getchar ());
+}
 
 static void
 prim_dot (vm_t *vm, xt_t xt)
@@ -462,8 +498,11 @@ register_prims (vm_t *vm)
 
   defprim (vm, "@", prim_fetch);
   defprim (vm, "!", prim_store);
+  defprim (vm, "c@", prim_cfetch);
+  defprim (vm, "c!", prim_cstore);
   defprim (vm, "here", prim_here);
   defprim (vm, ",", prim_comma);
+  defprim (vm, "c,", prim_ccomma);
 
   defprim (vm, "branch", prim_branch);
   defprim (vm, "0branch", prim_0branch);
@@ -478,6 +517,8 @@ register_prims (vm_t *vm)
   vm->latest->flags |= F_IMMEDIATE;
 
   defprim (vm, ".", prim_dot);
+  defprim (vm, "emit", prim_emit);
+  defprim (vm, "key", prim_key);
   defprim (vm, "bye", prim_bye);
 
   vm->xt_lit = defprim (vm, "lit", prim_lit);

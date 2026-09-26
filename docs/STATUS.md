@@ -10,9 +10,9 @@ Update this file in the same commit that adds or moves a word.
 ## Scoreboard
 
 ```text
-ANS Core coverage   63 / 133
-  in C              34
-  in Forth          29
+ANS Core coverage   73 / 133
+  in C              39
+  in Forth          34
 beyond Core         14  (8 Forth, 6 C internals)
 ```
 
@@ -20,25 +20,25 @@ beyond Core         14  (8 Forth, 6 C internals)
 
 ```text
 ! ' * + , - . / 0= : ; < = > >in >r @
-create depth dup drop execute exit find here immediate mod over
-r> r@ rot state swap [']
+c! c, c@ create depth dup drop emit execute exit find here
+immediate key mod over r> r@ rot state swap [']
 ```
 
 ## Core words implemented in Forth — core.fs
 
 ```text
 0< 1+ 1- 2* 2/ 2drop 2dup >body ?dup
-abs begin cell+ cells constant do does> else i if loop max min
-negate repeat then unloop until variable while
+abs begin bl cell+ cells constant cr do does> else i if loop
+max min negate repeat space spaces then type unloop until
+variable while
 ```
 
 ## Core words missing — grouped by what unblocks them
 
-Character I/O and strings (needs `emit`, `key`, string literals):
+Strings (needs a parse primitive for `"`-delimited text):
 
 ```text
-." s" emit type cr space spaces key accept
-bl char [char] count word
+." s" accept char [char] count word
 ```
 
 Pictured numeric output (needs `base` as a word and a hold area;
@@ -57,7 +57,7 @@ postpone literal recurse [ ]
 Memory, characters, and data space:
 
 ```text
-c! c@ c, char+ chars align aligned allot
+char+ chars align aligned allot
 fill move 2! 2@ +! 2over 2swap
 ```
 
