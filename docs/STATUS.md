@@ -85,23 +85,8 @@ C:      \  (Core Ext)   bye  (Tools Ext)
         lit branch 0branch (does>)  (Ash internals, not ANS)
 ```
 
-## Deviations and open spec items
+## Deviations and spec decisions
 
-Recorded here until docs/ASH_SPEC.md exists:
-
-- Dictionary lookup is ASCII case-insensitive.
-- `/` and `mod` are symmetric (C truncation); revisit with `fm/mod`
-  and `sm/rem`.
-- Word names are at most 255 chars; `dict_header` rejects longer ones
-  and `:` reports them.
-- `base` outside 2..36 never becomes C UB: `parse_number` rejects the
-  token, `.` falls back to decimal.
-- The physical ends of the stacks and dictionary live in the VM.
-  `allot` fails fatally at the dictionary's end; stack misuse is
-  detected between tokens at the outer interpreter — after the fact,
-  and a single word can still run past the ends unchecked. The inner
-  loop stays uninstrumented.
-- A `code_t` function pointer is assumed to fit one cell (POSIX,
-  x86_64 first); `ash.h` enforces it with a `_Static_assert`.
-- `forth/core.fs` is loaded relative to the working directory.
-- Control-flow words are not protected against interpret-state use.
+Moved to [SPEC.md](SPEC.md): Ash's answers to the standard's
+implementation-defined options and ambiguous conditions live there and
+change only with design decisions. This file tracks only coverage.
