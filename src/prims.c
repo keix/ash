@@ -218,16 +218,13 @@ prim_0branch (vm_t *vm, xt_t xt)
 
 /* interpreter surface */
 
-/* Dispatch the code field once, without calling the C execute(): a
-   colon word just moves ip and the surrounding loop runs its body, so
-   C stack frames never nest. */
+/* One bare dispatch, not run_xt: a colon word just moves ip and the
+   surrounding loop runs its body, so C stack frames never nest. */
 static void
 prim_execute (vm_t *vm, xt_t xt)
 {
-  xt_t x = (xt_t)pop (vm);
-
   (void)xt;
-  (*(code_t *)x) (vm, x);
+  dispatch (vm, (xt_t)pop (vm));
 }
 
 /* ans find: c-addr -- c-addr 0 | xt 1 | xt -1 */

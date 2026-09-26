@@ -160,7 +160,7 @@ void interpret_token(vm_t *vm, const char *tok, size_t len) {
         if (vm->state && !(w->flags & F_IMMEDIATE))
             compile_cell(vm, (cell_t)xt(w));   /* append xt to current definition */
         else
-            execute_from_c(vm, xt(w));         /* immediate, or interpreting */
+            run_xt(vm, xt(w));                 /* immediate, or interpreting */
     } else if (parse_number(tok, len, &n)) {   /* radix = BASE */
         if (vm->state) {
             compile_cell(vm, (cell_t)xt_lit);  /* compile LIT n */
