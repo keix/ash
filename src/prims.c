@@ -330,6 +330,45 @@ prim_colon (vm_t *vm, xt_t xt)
 }
 
 static void
+prim_create (vm_t *vm, xt_t xt)
+{
+  size_t len;
+  const char *name = next_token (vm, &len);
+  dict_entry_t *w;
+
+  (void)xt;
+  if (!name)
+    {
+      fprintf (stderr, "create needs a name\n");
+      return;
+    }
+  w = dict_header (vm, name, len);
+  if (!w)
+    {
+      input_source_t *src = active_source (vm);
+
+      fprintf (stderr, "create: bad name\n");
+      src->in = src->len;
+      return;
+    }
+  *entry_xt (w) = (cell_t)docreate;
+}
+
+/* (does>): patch the latest definition so it pushes its data field
+   and runs the thread after this word, then exit -- the rest of the
+   defining word's body belongs to the child. */
+static void
+prim_paren_does (vm_t *vm, xt_t xt)
+{
+  xt_t w = entry_xt (vm->latest);
+
+  (void)xt;
+  w[-1] = (cell_t)vm->ip;
+  *w = (cell_t)dodoes;
+  vm->ip = (xt_t *)rpop (vm);
+}
+
+static void
 prim_semi (vm_t *vm, xt_t xt)
 {
   (void)xt;
@@ -438,6 +477,9 @@ register_prims (vm_t *vm)
 
   vm->xt_lit = defprim (vm, "lit", prim_lit);
   vm->xt_exit = defprim (vm, "exit", do_exit);
+
+  defprim (vm, "create", prim_create);
+  defprim (vm, "(does>)", prim_paren_does);
 
   defprim (vm, ":", prim_colon);
   defprim (vm, ";", prim_semi);

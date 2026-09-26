@@ -75,6 +75,8 @@ cell_t rpop (vm_t *vm);
 /* exec.c */
 void docol (vm_t *vm, xt_t xt);
 void do_exit (vm_t *vm, xt_t xt);
+void docreate (vm_t *vm, xt_t xt);
+void dodoes (vm_t *vm, xt_t xt);
 void execute_from_c (vm_t *vm, xt_t xt);
 
 /* token.c */

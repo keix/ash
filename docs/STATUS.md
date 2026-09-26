@@ -10,26 +10,26 @@ Update this file in the same commit that adds or moves a word.
 ## Scoreboard
 
 ```text
-ANS Core coverage   55 / 133
-  in C              32
-  in Forth          23
-beyond Core         12  (7 Forth, 5 C internals)
+ANS Core coverage   62 / 133
+  in C              33
+  in Forth          29
+beyond Core         14  (8 Forth, 6 C internals)
 ```
 
 ## Core words implemented in C — the bootstrapping boundary
 
 ```text
 ! ' * + , - . / 0= : ; < = > >in >r @
-dup drop execute exit find here immediate mod over r> r@ rot
-state swap [']
+create dup drop execute exit find here immediate mod over r> r@
+rot state swap [']
 ```
 
 ## Core words implemented in Forth — core.fs
 
 ```text
-0< 1+ 1- 2* 2/ 2drop 2dup ?dup
-abs begin do else i if loop max min negate
-repeat then unloop until while
+0< 1+ 1- 2* 2/ 2drop 2dup >body ?dup
+abs begin cell+ cells constant do does> else i if loop max min
+negate repeat then unloop until variable while
 ```
 
 ## Core words missing — grouped by what unblocks them
@@ -48,18 +48,16 @@ burning the C `.` down to Forth rides on this):
 # #> #s <# hold sign u. decimal base >number
 ```
 
-Defining words and the compiler surface (needs `create`, the does
-cell, and `state`/`postpone` exposure):
+Defining words and the compiler surface:
 
 ```text
-create does> variable constant >body
 postpone literal recurse [ ]
 ```
 
 Memory, characters, and data space:
 
 ```text
-c! c@ c, cell+ cells char+ chars align aligned allot
+c! c@ c, char+ chars align aligned allot
 fill move 2! 2@ +! 2over 2swap depth
 ```
 
@@ -82,9 +80,9 @@ Implemented from Core Ext and elsewhere:
 
 ```text
 Forth:  nip tuck <> 0> again      (Core Ext)
-        <= >=                     (common practice, not ANS)
+        <= >= cell                (common practice, not ANS)
 C:      \  (Core Ext)   bye  (Tools Ext)
-        lit branch 0branch        (Ash internals, not ANS)
+        lit branch 0branch (does>)  (Ash internals, not ANS)
 ```
 
 ## Deviations and open spec items
