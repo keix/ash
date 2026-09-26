@@ -7,3 +7,5 @@
 5 ?dup . . 0 ?dup .
 : countdown begin dup . 1- dup 0= until drop ;
 5 countdown
+\ stack must balance
+depth .

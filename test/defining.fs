@@ -13,3 +13,5 @@ cell .
 : 2const create , , does> dup @ swap cell+ @ ;
 3 4 2const pair
 pair . .
+\ stack must balance
+depth .

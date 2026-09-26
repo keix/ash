@@ -59,6 +59,13 @@ prim_over (vm_t *vm, xt_t xt)
 }
 
 static void
+prim_depth (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, vm->dsp0 - vm->dsp);
+}
+
+static void
 prim_rot (vm_t *vm, xt_t xt)
 {
   (void)xt;
@@ -436,6 +443,7 @@ register_prims (vm_t *vm)
   defprim (vm, "swap", prim_swap);
   defprim (vm, "over", prim_over);
   defprim (vm, "rot", prim_rot);
+  defprim (vm, "depth", prim_depth);
 
   defprim (vm, "+", prim_add);
   defprim (vm, "-", prim_sub);

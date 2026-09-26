@@ -8,3 +8,5 @@ state @ .
 here 1886741507 over ! find swap drop .
 here 15105 over ! find swap drop .
 here 8026626 over ! find swap drop .
+\ stack must balance
+depth .

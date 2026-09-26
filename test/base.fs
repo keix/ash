@@ -16,3 +16,5 @@
 10 1+ . 10 1- . 10 2* . 10 2/ .
 nope
 1 2 + .
+\ stack must balance
+depth .
