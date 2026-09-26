@@ -24,7 +24,9 @@ pop_source (vm_t *vm)
 
 /* Cut one whitespace-delimited token from the active input source,
    starting at its >IN. Returns a pointer into the source buffer
-   (no copy). NULL when the source is exhausted. */
+   (no copy). NULL when the source is exhausted. One trailing
+   delimiter is consumed, so >IN lands just past it -- the convention
+   parsing words like s" rely on. */
 const char *
 next_token (vm_t *vm, size_t *len)
 {
@@ -43,7 +45,7 @@ next_token (vm_t *vm, size_t *len)
   start = i;
   while (i < src->len && (unsigned char)buf[i] > ' ')
     i++;
-  src->in = i;
+  src->in = i < src->len ? i + 1 : i;
   *len = (size_t)(i - start);
   return buf + start;
 }
