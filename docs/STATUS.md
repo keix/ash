@@ -10,35 +10,35 @@ Update this file in the same commit that adds or moves a word.
 ## Scoreboard
 
 ```text
-ANS Core coverage   73 / 133
-  in C              39
-  in Forth          34
-beyond Core         14  (8 Forth, 6 C internals)
+ANS Core coverage   81 / 133
+  in C              40
+  in Forth          41
+beyond Core         18  (9 Forth, 9 C)
 ```
 
 ## Core words implemented in C — the bootstrapping boundary
 
 ```text
 ! ' * + , - . / 0= : ; < = > >in >r @
-c! c, c@ create depth dup drop emit execute exit find here
-immediate key mod over r> r@ rot state swap [']
+align c! c, c@ create depth dup drop emit execute exit find
+here immediate key mod over r> r@ rot state swap [']
 ```
 
 ## Core words implemented in Forth — core.fs
 
 ```text
-0< 1+ 1- 2* 2/ 2drop 2dup >body ?dup
-abs begin bl cell+ cells constant cr do does> else i if loop
-max min negate repeat space spaces then type unloop until
-variable while
+( ." 0< 1+ 1- 2* 2/ 2drop 2dup >body ?dup [char]
+abs begin bl cell+ cells char constant count cr do does> else i
+if literal loop max min negate repeat s" space spaces then type
+unloop until variable while
 ```
 
 ## Core words missing — grouped by what unblocks them
 
-Strings (needs a parse primitive for `"`-delimited text):
+Strings and terminal input:
 
 ```text
-." s" accept char [char] count word
+accept word
 ```
 
 Pictured numeric output (needs `base` as a word and a hold area;
@@ -51,13 +51,13 @@ burning the C `.` down to Forth rides on this):
 Defining words and the compiler surface:
 
 ```text
-postpone literal recurse [ ]
+postpone recurse [ ]
 ```
 
 Memory, characters, and data space:
 
 ```text
-char+ chars align aligned allot
+char+ chars aligned allot
 fill move 2! 2@ +! 2over 2swap
 ```
 
@@ -71,7 +71,7 @@ and or xor invert lshift rshift
 Interpreter and system:
 
 ```text
-source evaluate quit abort abort" environment? (
+source evaluate quit abort abort" environment?
 ```
 
 ## Beyond Core
@@ -81,8 +81,10 @@ Implemented from Core Ext and elsewhere:
 ```text
 Forth:  nip tuck <> 0> again      (Core Ext)
         <= >= cell                (common practice, not ANS)
-C:      \  (Core Ext)   bye  (Tools Ext)
-        lit branch 0branch (does>)  (Ash internals, not ANS)
+        ,string                   (Ash internal)
+C:      \ parse  (Core Ext)   bye  (Tools Ext)
+        parse-name                (Forth-2012)
+        lit branch 0branch (does>) (s")  (Ash internals, not ANS)
 ```
 
 ## Deviations and spec decisions

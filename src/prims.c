@@ -21,6 +21,20 @@ prim_lit (vm_t *vm, xt_t xt)
   push (vm, (cell_t)*vm->ip++);
 }
 
+/* (s"): runtime of string literals. The thread holds a length cell,
+   then the bytes, padded to a cell boundary; step ip over them. */
+static void
+prim_do_squote (vm_t *vm, xt_t xt)
+{
+  cell_t len = (cell_t)*vm->ip++;
+  size_t cells = ((size_t)len + sizeof (cell_t) - 1) / sizeof (cell_t);
+
+  (void)xt;
+  push (vm, (cell_t)vm->ip);
+  push (vm, len);
+  vm->ip += cells;
+}
+
 /* stack manipulation */
 
 static void
@@ -291,6 +305,46 @@ prim_to_in (vm_t *vm, xt_t xt)
   push (vm, (cell_t)&active_source (vm)->in);
 }
 
+/* parse: the delimiter-argument sibling of next_token. No leading
+   skip; one trailing delimiter consumed. Zero judgment. */
+static void
+prim_parse (vm_t *vm, xt_t xt)
+{
+  input_source_t *src = active_source (vm);
+  char delim = (char)pop (vm);
+  const char *start = src->buf + src->in;
+  cell_t n = 0;
+
+  (void)xt;
+  while (src->in < src->len && src->buf[src->in] != delim)
+    {
+      src->in++;
+      n++;
+    }
+  if (src->in < src->len)
+    src->in++;
+  push (vm, (cell_t)start);
+  push (vm, n);
+}
+
+static void
+prim_parse_name (vm_t *vm, xt_t xt)
+{
+  size_t len = 0;
+  const char *name = next_token (vm, &len);
+
+  (void)xt;
+  push (vm, (cell_t)name);
+  push (vm, name ? (cell_t)len : 0);
+}
+
+static void
+prim_align (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  align_here (vm);
+}
+
 /* I/O */
 
 static void
@@ -511,6 +565,10 @@ register_prims (vm_t *vm)
   defprim (vm, "find", prim_find);
   defprim (vm, "state", prim_state);
   defprim (vm, ">in", prim_to_in);
+  defprim (vm, "parse", prim_parse);
+  defprim (vm, "parse-name", prim_parse_name);
+  defprim (vm, "align", prim_align);
+  defprim (vm, "(s\")", prim_do_squote);
 
   defprim (vm, "'", prim_tick);
   defprim (vm, "[']", prim_bracket_tick);
