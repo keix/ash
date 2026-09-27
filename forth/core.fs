@@ -80,3 +80,27 @@ here 0 , here swap - constant cell
 : cells cell * ;
 : cell+ cell + ;
 : >body cell+ ;
+
+\ character i/o over emit. type uses begin/while, not do/loop:
+\ loop runs its body at least once and a string may be empty.
+
+32 constant bl
+
+: cr 10 emit ;
+: space bl emit ;
+: spaces begin dup 0> while space 1- repeat drop ;
+: type begin dup 0> while swap dup c@ emit 1+ swap 1- repeat 2drop ;
+
+\ parsing and strings. ,string copies "-delimited text into the
+\ dictionary as a length cell plus bytes -- the shape (s") executes.
+
+: literal ['] lit , , ; immediate
+: char parse-name drop c@ ;
+: [char] char ['] lit , , ; immediate
+: ( 41 parse 2drop ; immediate
+: count dup 1+ swap c@ ;
+
+: ,string 34 parse dup ,
+  begin dup 0> while swap dup c@ c, 1+ swap 1- repeat 2drop align ;
+: s" ['] (s") , ,string ; immediate
+: ." ['] (s") , ,string ['] type , ; immediate

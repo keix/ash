@@ -10,35 +10,35 @@ Update this file in the same commit that adds or moves a word.
 ## Scoreboard
 
 ```text
-ANS Core coverage   63 / 133
-  in C              34
-  in Forth          29
-beyond Core         14  (8 Forth, 6 C internals)
+ANS Core coverage   81 / 133
+  in C              40
+  in Forth          41
+beyond Core         18  (9 Forth, 9 C)
 ```
 
 ## Core words implemented in C — the bootstrapping boundary
 
 ```text
 ! ' * + , - . / 0= : ; < = > >in >r @
-create depth dup drop execute exit find here immediate mod over
-r> r@ rot state swap [']
+align c! c, c@ create depth dup drop emit execute exit find
+here immediate key mod over r> r@ rot state swap [']
 ```
 
 ## Core words implemented in Forth — core.fs
 
 ```text
-0< 1+ 1- 2* 2/ 2drop 2dup >body ?dup
-abs begin cell+ cells constant do does> else i if loop max min
-negate repeat then unloop until variable while
+( ." 0< 1+ 1- 2* 2/ 2drop 2dup >body ?dup [char]
+abs begin bl cell+ cells char constant count cr do does> else i
+if literal loop max min negate repeat s" space spaces then type
+unloop until variable while
 ```
 
 ## Core words missing — grouped by what unblocks them
 
-Character I/O and strings (needs `emit`, `key`, string literals):
+Strings and terminal input:
 
 ```text
-." s" emit type cr space spaces key accept
-bl char [char] count word
+accept word
 ```
 
 Pictured numeric output (needs `base` as a word and a hold area;
@@ -51,13 +51,13 @@ burning the C `.` down to Forth rides on this):
 Defining words and the compiler surface:
 
 ```text
-postpone literal recurse [ ]
+postpone recurse [ ]
 ```
 
 Memory, characters, and data space:
 
 ```text
-c! c@ c, char+ chars align aligned allot
+char+ chars aligned allot
 fill move 2! 2@ +! 2over 2swap
 ```
 
@@ -71,7 +71,7 @@ and or xor invert lshift rshift
 Interpreter and system:
 
 ```text
-source evaluate quit abort abort" environment? (
+source evaluate quit abort abort" environment?
 ```
 
 ## Beyond Core
@@ -81,27 +81,14 @@ Implemented from Core Ext and elsewhere:
 ```text
 Forth:  nip tuck <> 0> again      (Core Ext)
         <= >= cell                (common practice, not ANS)
-C:      \  (Core Ext)   bye  (Tools Ext)
-        lit branch 0branch (does>)  (Ash internals, not ANS)
+        ,string                   (Ash internal)
+C:      \ parse  (Core Ext)   bye  (Tools Ext)
+        parse-name                (Forth-2012)
+        lit branch 0branch (does>) (s")  (Ash internals, not ANS)
 ```
 
-## Deviations and open spec items
+## Deviations and spec decisions
 
-Recorded here until docs/ASH_SPEC.md exists:
-
-- Dictionary lookup is ASCII case-insensitive.
-- `/` and `mod` are symmetric (C truncation); revisit with `fm/mod`
-  and `sm/rem`.
-- Word names are at most 255 chars; `dict_header` rejects longer ones
-  and `:` reports them.
-- `base` outside 2..36 never becomes C UB: `parse_number` rejects the
-  token, `.` falls back to decimal.
-- The physical ends of the stacks and dictionary live in the VM.
-  `allot` fails fatally at the dictionary's end; stack misuse is
-  detected between tokens at the outer interpreter — after the fact,
-  and a single word can still run past the ends unchecked. The inner
-  loop stays uninstrumented.
-- A `code_t` function pointer is assumed to fit one cell (POSIX,
-  x86_64 first); `ash.h` enforces it with a `_Static_assert`.
-- `forth/core.fs` is loaded relative to the working directory.
-- Control-flow words are not protected against interpret-state use.
+Moved to [SPEC.md](SPEC.md): Ash's answers to the standard's
+implementation-defined options and ambiguous conditions live there and
+change only with design decisions. This file tracks only coverage.
