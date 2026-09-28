@@ -15,17 +15,40 @@ build/%.o: src/%.c src/ash.h | build
 build:
 	mkdir -p build
 
-test: ash
+FORTH_TESTS := tests/stack.fs tests/arithmetic.fs tests/memory.fs \
+               tests/control.fs tests/compiler.fs
+
+TESTOBJ := $(filter-out build/main.o,$(OBJ))
+
+test: test-c test-forth test-session
+
+test-c: all
 	@fail=0; \
-	for t in test/*.fs; do \
+	for t in tests/c/*.c; do \
+	  bin=build/$$(basename $${t%.c}); \
+	  $(CC) $(CFLAGS) -Isrc -o $$bin $$t $(TESTOBJ) && $$bin || fail=1; \
+	done; \
+	if [ $$fail = 0 ]; then echo "c tests passed"; else exit 1; fi
+
+test-forth: ash
+	@out=$$(./ash tests/tester.fs $(FORTH_TESTS) tests/summary.fs 2>&1); \
+	echo "$$out"; \
+	echo "$$out" | grep -q "all forth tests passed"
+
+test-session: ash
+	@fail=0; \
+	for t in tests/session/*.fs; do \
 	  ./ash < $$t 2>&1 | diff -u $${t%.fs}.expected - || fail=1; \
 	done; \
-	if [ $$fail = 0 ]; then echo "all tests passed"; else exit 1; fi
+	if [ $$fail = 0 ]; then echo "session tests passed"; else exit 1; fi
+
+test-gforth:
+	gforth tests/tester.fs $(FORTH_TESTS) tests/summary.fs -e bye
 
 format:
-	clang-format -i src/*.c src/*.h
+	clang-format -i src/*.c src/*.h tests/c/*.c
 
 clean:
 	rm -rf build ash
 
-.PHONY: all test format clean
+.PHONY: all test test-c test-forth test-session test-gforth format clean
