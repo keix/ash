@@ -345,6 +345,18 @@ prim_align (vm_t *vm, xt_t xt)
   align_here (vm);
 }
 
+static void
+prim_allot (vm_t *vm, xt_t xt)
+{
+  cell_t n = pop (vm);
+
+  (void)xt;
+  if (n < 0)
+    vm->here += n; /* ans allows releasing space */
+  else
+    allot (vm, (size_t)n);
+}
+
 /* I/O */
 
 static void
@@ -557,6 +569,7 @@ register_prims (vm_t *vm)
   defprim (vm, "here", prim_here);
   defprim (vm, ",", prim_comma);
   defprim (vm, "c,", prim_ccomma);
+  defprim (vm, "allot", prim_allot);
 
   defprim (vm, "branch", prim_branch);
   defprim (vm, "0branch", prim_0branch);

@@ -10,8 +10,8 @@ Update this file in the same commit that adds or moves a word.
 ## Scoreboard
 
 ```text
-ANS Core coverage   81 / 133
-  in C              40
+ANS Core coverage   82 / 133
+  in C              41
   in Forth          41
 beyond Core         18  (9 Forth, 9 C)
 ```
@@ -20,8 +20,8 @@ beyond Core         18  (9 Forth, 9 C)
 
 ```text
 ! ' * + , - . / 0= : ; < = > >in >r @
-align c! c, c@ create depth dup drop emit execute exit find
-here immediate key mod over r> r@ rot state swap [']
+align allot c! c, c@ create depth dup drop emit execute exit
+find here immediate key mod over r> r@ rot state swap [']
 ```
 
 ## Core words implemented in Forth — core.fs
@@ -57,7 +57,7 @@ postpone recurse [ ]
 Memory, characters, and data space:
 
 ```text
-char+ chars aligned allot
+char+ chars aligned
 fill move 2! 2@ +! 2over 2swap
 ```
 
