@@ -68,6 +68,8 @@ word found
 
 This is the essential property of Forth: the parser barely changes, and state changes what interpretation means.
 
+A step-by-step trace of these mechanisms — call order, stack states, patching sequences — lives in [EXECUTION.md](EXECUTION.md).
+
 ## Source layout
 
 ```text
