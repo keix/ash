@@ -15,8 +15,8 @@ build/%.o: src/%.c src/ash.h | build
 build:
 	mkdir -p build
 
-FORTH_TESTS := tests/stack.fs tests/arithmetic.fs tests/memory.fs \
-               tests/control.fs tests/compiler.fs
+FORTH_TESTS := tests/stack.fs tests/arithmetic.fs tests/numeric.fs \
+               tests/memory.fs tests/control.fs tests/compiler.fs
 
 TESTOBJ := $(filter-out build/main.o,$(OBJ))
 

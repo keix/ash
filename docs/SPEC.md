@@ -23,7 +23,7 @@ word set is complete and passes the Forth-2012 test suite.
 | char size | 1 byte, ASCII |
 | alignment | cell alignment, 8 bytes; headers and code fields are cell-aligned |
 | case sensitivity | dictionary lookup is ASCII case-insensitive |
-| division rounding | symmetric (C truncation) — provisional until `fm/mod` / `sm/rem` |
+| division rounding | `/ mod /mod */ */mod` are symmetric; both `fm/mod` (floored) and `sm/rem` (symmetric) are provided |
 | flags | true = -1, false = 0 |
 | number conversion | radix is `BASE`, valid 2..36; digits `0-9` then `a-z`/`A-Z` |
 | word name length | 1..255 characters |

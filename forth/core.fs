@@ -20,6 +20,7 @@
 \ comparison
 
 : <> = 0= ;
+: 0<> 0= 0= ;
 : <= > 0= ;
 : >= < 0= ;
 : 0< 0 < ;
@@ -144,3 +145,48 @@ here 0 , here swap - constant cell
 : ] -1 state ! ;
 : latest-xt latest cell+ 1+ dup c@ swap 1+ + aligned cell+ ;
 : recurse latest-xt , ; immediate
+
+\ double-cell arithmetic over um* and um/mod
+
+: dnegate invert swap invert 1+ swap over 0= if 1+ then ;
+: dabs dup 0< if dnegate then ;
+: m* 2dup xor 0< >r abs swap abs um* r> if dnegate then ;
+: sm/rem
+  2dup xor 0< >r
+  over 0< >r
+  abs >r dabs r> um/mod
+  swap r> if negate then swap
+  r> if negate then ;
+: fm/mod
+  dup >r sm/rem
+  swap dup 0<> over r@ xor 0< and if
+    r@ + swap 1-
+  else
+    swap
+  then
+  r> drop ;
+: */mod >r m* r> sm/rem ;
+: */ */mod nip ;
+
+\ pictured numeric output. Digits are held from the top of a fixed
+\ buffer downward; a full double in base 2 needs 128 chars plus sign.
+
+create holdbuf 136 allot
+variable hld
+
+: mu/mod >r 0 r@ um/mod r> swap >r um/mod r> ;
+: <# holdbuf 136 + hld ! ;
+: hold hld @ 1- dup hld ! c! ;
+: # base @ mu/mod rot dup 9 > if 7 + then [char] 0 + hold ;
+: #s begin # 2dup or 0= until ;
+: sign 0< if [char] - hold then ;
+: #> 2drop hld @ holdbuf 136 + over - ;
+
+: decimal 10 base ! ;
+: hex 16 base ! ;
+
+\ numeric display, burned down from C: the kernel's . is gone and
+\ these are the real thing.
+
+: u. 0 <# #s #> type space ;
+: . dup abs 0 <# #s rot sign #> type space ;
