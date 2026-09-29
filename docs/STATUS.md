@@ -10,27 +10,29 @@ Update this file in the same commit that adds or moves a word.
 ## Scoreboard
 
 ```text
-ANS Core coverage   82 / 133
-  in C              41
-  in Forth          41
-beyond Core         18  (9 Forth, 9 C)
+ANS Core coverage   97 / 133
+  in C              47
+  in Forth          50
+beyond Core         19  (10 Forth, 9 C)
 ```
 
 ## Core words implemented in C — the bootstrapping boundary
 
 ```text
 ! ' * + , - . / 0= : ; < = > >in >r @
-align allot c! c, c@ create depth dup drop emit execute exit
-find here immediate key mod over r> r@ rot state swap [']
+align allot and c! c, c@ create depth dup drop emit execute
+exit find here immediate invert key lshift mod or over r> r@
+rot rshift state swap xor [']
 ```
 
 ## Core words implemented in Forth — core.fs
 
 ```text
-( ." 0< 1+ 1- 2* 2/ 2drop 2dup >body ?dup [char]
-abs begin bl cell+ cells char constant count cr do does> else i
-if literal loop max min negate repeat s" space spaces then type
-unloop until variable while
+( ." +! 0< 1+ 1- 2! 2* 2/ 2@ 2drop 2dup 2over 2swap
+>body ?dup [char] abs aligned begin bl cell+ cells char char+
+chars constant count cr do does> else fill i if literal loop
+max min negate repeat s" space spaces then type unloop until
+variable while
 ```
 
 ## Core words missing — grouped by what unblocks them
@@ -54,17 +56,15 @@ Defining words and the compiler surface:
 postpone recurse [ ]
 ```
 
-Memory, characters, and data space:
+Memory:
 
 ```text
-char+ chars aligned
-fill move 2! 2@ +! 2over 2swap
+move
 ```
 
-Arithmetic and logic:
+Arithmetic and loops:
 
 ```text
-and or xor invert lshift rshift
 */ */mod /mod m* um* um/mod fm/mod sm/rem s>d u< +loop j leave
 ```
 
@@ -80,7 +80,7 @@ Implemented from Core Ext and elsewhere:
 
 ```text
 Forth:  nip tuck <> 0> again      (Core Ext)
-        <= >= cell                (common practice, not ANS)
+        <= >= cell -rot           (common practice, not ANS)
         ,string                   (Ash internal)
 C:      \ parse  (Core Ext)   bye  (Tools Ext)
         parse-name                (Forth-2012)

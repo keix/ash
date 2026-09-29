@@ -80,6 +80,20 @@ here 0 , here swap - constant cell
 : cells cell * ;
 : cell+ cell + ;
 : >body cell+ ;
+: char+ 1+ ;
+: chars ;
+: aligned cell 1- + cell 1- invert and ;
+
+\ memory words
+
+: -rot rot rot ;
+: +! dup @ rot + swap ! ;
+: 2! swap over ! cell+ ! ;
+: 2@ dup cell+ @ swap @ ;
+: 2swap rot >r rot r> ;
+: 2over >r >r 2dup r> r> 2swap ;
+: fill >r begin dup 0> while over r@ swap c! swap 1+ swap 1- repeat
+  2drop r> drop ;
 
 \ character i/o over emit. type uses begin/while, not do/loop:
 \ loop runs its body at least once and a string may be empty.

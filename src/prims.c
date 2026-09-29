@@ -131,6 +131,55 @@ prim_mod (vm_t *vm, xt_t xt)
   push (vm, pop (vm) % b);
 }
 
+/* logic and shifts. rshift is logical, per ANS */
+
+static void
+prim_and (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  cell_t b = pop (vm);
+  push (vm, pop (vm) & b);
+}
+
+static void
+prim_or (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  cell_t b = pop (vm);
+  push (vm, pop (vm) | b);
+}
+
+static void
+prim_xor (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  cell_t b = pop (vm);
+  push (vm, pop (vm) ^ b);
+}
+
+static void
+prim_invert (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, ~pop (vm));
+}
+
+static void
+prim_lshift (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  cell_t u = pop (vm);
+  push (vm, (cell_t)((uintptr_t)pop (vm) << u));
+}
+
+static void
+prim_rshift (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  cell_t u = pop (vm);
+  push (vm, (cell_t)((uintptr_t)pop (vm) >> u));
+}
+
 /* return stack */
 
 static void
@@ -556,6 +605,13 @@ register_prims (vm_t *vm)
   defprim (vm, ">r", prim_tor);
   defprim (vm, "r>", prim_fromr);
   defprim (vm, "r@", prim_rfetch);
+
+  defprim (vm, "and", prim_and);
+  defprim (vm, "or", prim_or);
+  defprim (vm, "xor", prim_xor);
+  defprim (vm, "invert", prim_invert);
+  defprim (vm, "lshift", prim_lshift);
+  defprim (vm, "rshift", prim_rshift);
 
   defprim (vm, "=", prim_eq);
   defprim (vm, "<", prim_lt);

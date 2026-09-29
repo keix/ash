@@ -14,3 +14,6 @@ t{ depth -> 0 }t
 t{ 1 2 depth -> 1 2 2 }t
 t{ 5 >r r@ r> -> 5 5 }t
 t{ 1 2 >r >r r> r> -> 1 2 }t
+t{ 1 2 3 -rot -> 3 1 2 }t
+t{ 1 2 3 4 2swap -> 3 4 1 2 }t
+t{ 1 2 3 4 2over -> 1 2 3 4 1 2 }t

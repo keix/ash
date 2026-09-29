@@ -30,3 +30,11 @@ t{ -3 0< -> -1 }t
 t{ 3 0< -> 0 }t
 t{ 3 0> -> -1 }t
 t{ -3 0> -> 0 }t
+t{ 12 10 and -> 8 }t
+t{ 12 10 or -> 14 }t
+t{ 12 10 xor -> 6 }t
+t{ 0 invert -> -1 }t
+t{ -1 invert -> 0 }t
+t{ 1 4 lshift -> 16 }t
+t{ 16 2 rshift -> 4 }t
+t{ 1 0 lshift -> 1 }t

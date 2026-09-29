@@ -1,2 +1,4 @@
+If:
+  PathMatch: [.*\.c, .*\.h]
 CompileFlags:
-  Add: [-Isrc, -std=c11]
+  Add: [-Isrc, -xc, -std=c11]
