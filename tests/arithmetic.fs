@@ -38,3 +38,11 @@ t{ -1 invert -> 0 }t
 t{ 1 4 lshift -> 16 }t
 t{ 16 2 rshift -> 4 }t
 t{ 1 0 lshift -> 1 }t
+t{ 22 7 /mod -> 1 3 }t
+t{ 1 2 u< -> -1 }t
+t{ 2 1 u< -> 0 }t
+t{ -1 1 u< -> 0 }t
+t{ 1 -1 u< -> -1 }t
+t{ 0 0 u< -> 0 }t
+t{ 5 s>d -> 5 0 }t
+t{ -5 s>d -> -5 -1 }t

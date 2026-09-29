@@ -10,10 +10,10 @@ Update this file in the same commit that adds or moves a word.
 ## Scoreboard
 
 ```text
-ANS Core coverage   97 / 133
+ANS Core coverage   104 / 133
   in C              47
-  in Forth          50
-beyond Core         19  (10 Forth, 9 C)
+  in Forth          57
+beyond Core         23  (13 Forth, 10 C)
 ```
 
 ## Core words implemented in C — the bootstrapping boundary
@@ -28,11 +28,11 @@ rot rshift state swap xor [']
 ## Core words implemented in Forth — core.fs
 
 ```text
-( ." +! 0< 1+ 1- 2! 2* 2/ 2@ 2drop 2dup 2over 2swap
->body ?dup [char] abs aligned begin bl cell+ cells char char+
-chars constant count cr do does> else fill i if literal loop
-max min negate repeat s" space spaces then type unloop until
-variable while
+( ." +! /mod 0< 1+ 1- 2! 2* 2/ 2@ 2drop 2dup 2over 2swap
+>body ?dup [ ] [char] abs aligned begin bl cell+ cells char
+char+ chars constant count cr do does> else fill i if literal
+loop max min move negate recurse repeat s" s>d space spaces
+then type u< unloop until variable while
 ```
 
 ## Core words missing — grouped by what unblocks them
@@ -53,19 +53,13 @@ burning the C `.` down to Forth rides on this):
 Defining words and the compiler surface:
 
 ```text
-postpone recurse [ ]
-```
-
-Memory:
-
-```text
-move
+postpone
 ```
 
 Arithmetic and loops:
 
 ```text
-*/ */mod /mod m* um* um/mod fm/mod sm/rem s>d u< +loop j leave
+*/ */mod m* um* um/mod fm/mod sm/rem +loop j leave
 ```
 
 Interpreter and system:
@@ -80,11 +74,12 @@ Implemented from Core Ext and elsewhere:
 
 ```text
 Forth:  nip tuck <> 0> again      (Core Ext)
+        cmove cmove>              (String word set)
         <= >= cell -rot           (common practice, not ANS)
-        ,string                   (Ash internal)
+        ,string latest-xt         (Ash internals)
 C:      \ parse  (Core Ext)   bye  (Tools Ext)
         parse-name                (Forth-2012)
-        lit branch 0branch (does>) (s")  (Ash internals, not ANS)
+        latest lit branch 0branch (does>) (s")  (Ash internals)
 ```
 
 ## Deviations and spec decisions

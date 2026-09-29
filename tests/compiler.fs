@@ -33,3 +33,11 @@ t{ 10 a5 -> 15 }t
 t{ sx nip -> 2 }t
 t{ sx drop c@ -> 97 }t
 t{ sx drop 1+ c@ -> 98 }t
+
+\ [ ] literal, and recursion
+: tw [ 3 4 * ] literal ;
+t{ tw -> 12 }t
+: fact dup 1 > if dup 1- recurse * then ;
+t{ 5 fact -> 120 }t
+t{ 1 fact -> 1 }t
+t{ 0 fact -> 0 }t

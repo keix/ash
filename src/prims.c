@@ -348,6 +348,13 @@ prim_state (vm_t *vm, xt_t xt)
 }
 
 static void
+prim_latest (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, (cell_t)vm->latest);
+}
+
+static void
 prim_to_in (vm_t *vm, xt_t xt)
 {
   (void)xt;
@@ -633,6 +640,7 @@ register_prims (vm_t *vm)
   defprim (vm, "execute", prim_execute);
   defprim (vm, "find", prim_find);
   defprim (vm, "state", prim_state);
+  defprim (vm, "latest", prim_latest);
   defprim (vm, ">in", prim_to_in);
   defprim (vm, "parse", prim_parse);
   defprim (vm, "parse-name", prim_parse_name);

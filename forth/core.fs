@@ -118,3 +118,29 @@ here 0 , here swap - constant cell
   begin dup 0> while swap dup c@ c, 1+ swap 1- repeat 2drop align ;
 : s" ['] (s") , ,string ; immediate
 : ." ['] (s") , ,string ['] type , ; immediate
+
+\ more arithmetic
+
+: /mod 2dup mod -rot / ;
+: u< 2dup xor 0< if nip 0< else - 0< then ;
+: s>d dup 0< ;
+
+\ copying memory. move picks the direction, so overlap is safe.
+
+: cmove
+  begin dup 0> while
+    >r over c@ over c! 1+ swap 1+ swap r> 1-
+  repeat drop 2drop ;
+: cmove>
+  begin dup 0> while
+    1- >r over r@ + c@ over r@ + c! r>
+  repeat drop 2drop ;
+: move >r 2dup u< if r> cmove> else r> cmove then ;
+
+\ compiler surface. latest-xt reads the dictionary layout from
+\ forth: link | flags name_len name pad | does | code.
+
+: [ 0 state ! ; immediate
+: ] -1 state ! ;
+: latest-xt latest cell+ 1+ dup c@ swap 1+ + aligned cell+ ;
+: recurse latest-xt , ; immediate

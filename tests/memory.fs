@@ -24,3 +24,9 @@ create dv 2 cells allot
 t{ 3 4 dv 2! dv 2@ -> 3 4 }t
 t{ here 3 65 fill here c@ here 1+ c@ here 2 + c@ -> 65 65 65 }t
 t{ here 0 66 fill here c@ -> 65 }t
+create mbuf 16 allot
+: mset 65 mbuf c! 66 mbuf 1+ c! 67 mbuf 2 + c! ;
+t{ mset mbuf mbuf 8 + 3 move mbuf 8 + c@ mbuf 9 + c@ mbuf 10 + c@ -> 65 66 67 }t
+t{ mset mbuf mbuf 1+ 3 move mbuf c@ mbuf 1+ c@ mbuf 2 + c@ mbuf 3 + c@ -> 65 65 66 67 }t
+t{ mset mbuf 1+ mbuf 2 move mbuf c@ mbuf 1+ c@ -> 66 67 }t
+t{ mbuf mbuf 0 move -> }t
