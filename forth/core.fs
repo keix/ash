@@ -80,6 +80,20 @@ here 0 , here swap - constant cell
 : cells cell * ;
 : cell+ cell + ;
 : >body cell+ ;
+: char+ 1+ ;
+: chars ;
+: aligned cell 1- + cell 1- invert and ;
+
+\ memory words
+
+: -rot rot rot ;
+: +! dup @ rot + swap ! ;
+: 2! swap over ! cell+ ! ;
+: 2@ dup cell+ @ swap @ ;
+: 2swap rot >r rot r> ;
+: 2over >r >r 2dup r> r> 2swap ;
+: fill >r begin dup 0> while over r@ swap c! swap 1+ swap 1- repeat
+  2drop r> drop ;
 
 \ character i/o over emit. type uses begin/while, not do/loop:
 \ loop runs its body at least once and a string may be empty.
@@ -104,3 +118,29 @@ here 0 , here swap - constant cell
   begin dup 0> while swap dup c@ c, 1+ swap 1- repeat 2drop align ;
 : s" ['] (s") , ,string ; immediate
 : ." ['] (s") , ,string ['] type , ; immediate
+
+\ more arithmetic
+
+: /mod 2dup mod -rot / ;
+: u< 2dup xor 0< if nip 0< else - 0< then ;
+: s>d dup 0< ;
+
+\ copying memory. move picks the direction, so overlap is safe.
+
+: cmove
+  begin dup 0> while
+    >r over c@ over c! 1+ swap 1+ swap r> 1-
+  repeat drop 2drop ;
+: cmove>
+  begin dup 0> while
+    1- >r over r@ + c@ over r@ + c! r>
+  repeat drop 2drop ;
+: move >r 2dup u< if r> cmove> else r> cmove then ;
+
+\ compiler surface. latest-xt reads the dictionary layout from
+\ forth: link | flags name_len name pad | does | code.
+
+: [ 0 state ! ; immediate
+: ] -1 state ! ;
+: latest-xt latest cell+ 1+ dup c@ swap 1+ + aligned cell+ ;
+: recurse latest-xt , ; immediate

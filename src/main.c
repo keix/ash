@@ -35,18 +35,19 @@ slurp (const char *path, cell_t *len)
   return buf;
 }
 
-static void
+static int
 load_file (vm_t *vm, const char *path)
 {
   cell_t len;
   char *buf = slurp (path, &len);
 
   if (!buf)
-    return;
+    return -1;
   push_source (vm, buf, len, -1);
   interpret_source (vm);
   pop_source (vm);
   free (buf);
+  return 0;
 }
 
 enum
@@ -63,7 +64,7 @@ static uint8_t dictionary[DICT_BYTES];
 static char tib[TIB_BYTES];
 
 int
-main (void)
+main (int argc, char **argv)
 {
   vm_t vm = { 0 };
 
@@ -77,6 +78,18 @@ main (void)
 
   register_prims (&vm);
   load_file (&vm, CORE_FS);
+
+  /* gforth-shaped invocation: interpret the named files, then exit */
+  if (argc > 1)
+    {
+      for (int i = 1; i < argc; i++)
+        if (load_file (&vm, argv[i]) != 0)
+          {
+            fprintf (stderr, "cannot open %s\n", argv[i]);
+            return 1;
+          }
+      return 0;
+    }
 
   if (isatty (STDIN_FILENO))
     fputs ("Ash, Copyright (C) 2026 KEI SAWAMURA\n"

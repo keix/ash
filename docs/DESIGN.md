@@ -245,7 +245,7 @@ dodoes:    push body; rpush ip; ip = does     — data-field address, then DOES>
 
 ### JIT
 
-The code field is the execution boundary made physical. Interpreted, specialized, or native — switching strategy for a word means writing one cell, and no caller ever changes. A hot does-word is JITted by compiling its thread and swapping `code`; `does` stays where the compiler can read it.
+Switching a word's execution strategy means writing one cell — the code field — and no caller ever changes. A hot does-word is compiled by translating its thread and swapping `code`; `does` stays where the compiler can read it. The full contract is the [JIT contract](#jit-contract) section below.
 
 ## Exceptions
 
@@ -271,6 +271,97 @@ variable handler
 ```
 
 `QUIT` empties the return stack (`rp!`) and re-enters the outer interpreter loop; `ABORT` empties the data stack and performs `QUIT`; an uncaught `THROW` falls back to `ABORT`'s behavior. The standard's rationale describes `CATCH`/`THROW` as a non-local return similar to C's `setjmp`/`longjmp` — Ash takes that comparison literally and then refuses the C mechanism, because exception semantics belong above the machine boundary. A small C kernel. The rest is Forth — including the exceptions.
+
+## JIT contract
+
+The JIT lives entirely below the optimization boundary.
+
+Before JIT compilation, a colon definition points at `docol`, and its body is a thread of execution tokens:
+
+```text
+[ docol ] [ dup-xt | *-xt | exit-xt ]
+```
+
+After JIT compilation, only the code field changes:
+
+```text
+[ native ] [ original thread may remain ]
+```
+
+Callers always enter a word through its code field, so threaded and native words may coexist freely. A threaded word may call a native word. A native word may transfer control to a threaded word. Immediate words require no special treatment: they are ordinary words that happen to execute during compilation and may be translated by the same machinery.
+
+The code field realizes the execution boundary; swapping it is the optimization boundary made physical. Changing the execution strategy below the code field must not change semantics above it.
+
+### Compilation stages
+
+The JIT may evolve in stages.
+
+1. **Template JIT.** Translate each xt in a thread into a native dispatch sequence. The first goal is only to remove the inner interpreter's repeated dispatch. No Forth semantics are reimplemented.
+
+2. **Primitive inlining.** Known primitives such as `dup`, `+`, `@`, and `!` may be expanded directly into native instructions. `lit` becomes an immediate push. `branch` and `0branch` become native control-flow instructions.
+
+3. **Inlining and specialization.** Native words may later inline other words, specialize operations, or perform further optimization as long as the observable Forth semantics remain unchanged.
+
+### Calling convention
+
+JIT-generated code must preserve one invariant:
+
+> Executing Forth code must not create nested C stack frames that are required for Forth control flow.
+
+This constraint follows from Ash's exception model. `CATCH` and `THROW` perform non-local control transfer by restoring the Forth data and return stacks. They do not unwind the C stack. Therefore, native Forth calls must not depend on the host C call stack for their continuation.
+
+A native word calling another Forth word must place its continuation on the Forth return stack and transfer control without creating a persistent C frame:
+
+```text
+native word
+    │
+    ├─ push continuation onto Forth return stack
+    │
+    └─ jump to callee
+```
+
+The same rule applies to:
+
+```text
+native   → native
+native   → threaded
+threaded → native
+threaded → threaded
+```
+
+All four combinations use the same Forth control-flow model.
+
+One decision this forces: the return stack needs a **uniform continuation representation** that both exit paths understand. `exit` pops a value and resumes it as a thread ip; a native word's continuation is a machine-code address. Either every continuation stays a thread ip — a native caller pushes a pointer to a one-cell trampoline thread whose xt re-enters the native code — or the exit protocol becomes an indirect jump through the popped value for all words. The trampoline form is currently favored: the threaded engine, the NULL-ip sentinel, and `exit` remain untouched. The contract requires only that one representation serve all four combinations.
+
+This keeps `CATCH` and `THROW` independent of the JIT. Restoring the Forth return stack is sufficient to discard both threaded and native continuations.
+
+The JIT must adapt to the exception model; the exception model must not become aware of the JIT.
+
+### Native ABI
+
+JIT-generated code participates in the same execution boundary as every other word. The code field remains the single point through which a word's execution strategy is selected.
+
+The exact native calling convention is architecture-specific, but it must preserve:
+
+- the data-stack pointer
+- the Forth return-stack pointer
+- the instruction / continuation state
+- the VM state required by Forth semantics
+- the no-nested-C-frames invariant
+- full stack materialization at every point where control may leave
+  the word: `THROW` restores stack pointers and discards everything
+  else, so Forth state cached only in registers across a call into
+  another word would be lost
+
+The initial implementation targets x86_64.
+
+### Hotness
+
+Hotness metadata is not part of a Forth word's semantic representation. Execution counters and profiling information therefore live outside the dictionary entry, keyed by xt or another stable word identity. This keeps the dictionary layout independent of optimization policy.
+
+A word becomes eligible for JIT compilation when the estimated cost of continuing threaded execution exceeds the cost of translating it. The initial implementation may use a simple invocation counter; more advanced policies may later include thread length, backedge counts, or measured execution cost.
+
+Hotness is an optimization policy, not part of the language.
 
 ## Primitives and the bootstrapping boundary
 

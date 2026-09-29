@@ -131,6 +131,55 @@ prim_mod (vm_t *vm, xt_t xt)
   push (vm, pop (vm) % b);
 }
 
+/* logic and shifts. rshift is logical, per ANS */
+
+static void
+prim_and (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  cell_t b = pop (vm);
+  push (vm, pop (vm) & b);
+}
+
+static void
+prim_or (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  cell_t b = pop (vm);
+  push (vm, pop (vm) | b);
+}
+
+static void
+prim_xor (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  cell_t b = pop (vm);
+  push (vm, pop (vm) ^ b);
+}
+
+static void
+prim_invert (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, ~pop (vm));
+}
+
+static void
+prim_lshift (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  cell_t u = pop (vm);
+  push (vm, (cell_t)((uintptr_t)pop (vm) << u));
+}
+
+static void
+prim_rshift (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  cell_t u = pop (vm);
+  push (vm, (cell_t)((uintptr_t)pop (vm) >> u));
+}
+
 /* return stack */
 
 static void
@@ -299,6 +348,13 @@ prim_state (vm_t *vm, xt_t xt)
 }
 
 static void
+prim_latest (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, (cell_t)vm->latest);
+}
+
+static void
 prim_to_in (vm_t *vm, xt_t xt)
 {
   (void)xt;
@@ -343,6 +399,18 @@ prim_align (vm_t *vm, xt_t xt)
 {
   (void)xt;
   align_here (vm);
+}
+
+static void
+prim_allot (vm_t *vm, xt_t xt)
+{
+  cell_t n = pop (vm);
+
+  (void)xt;
+  if (n < 0)
+    vm->here += n; /* ans allows releasing space */
+  else
+    allot (vm, (size_t)n);
 }
 
 /* I/O */
@@ -545,6 +613,13 @@ register_prims (vm_t *vm)
   defprim (vm, "r>", prim_fromr);
   defprim (vm, "r@", prim_rfetch);
 
+  defprim (vm, "and", prim_and);
+  defprim (vm, "or", prim_or);
+  defprim (vm, "xor", prim_xor);
+  defprim (vm, "invert", prim_invert);
+  defprim (vm, "lshift", prim_lshift);
+  defprim (vm, "rshift", prim_rshift);
+
   defprim (vm, "=", prim_eq);
   defprim (vm, "<", prim_lt);
   defprim (vm, ">", prim_gt);
@@ -557,6 +632,7 @@ register_prims (vm_t *vm)
   defprim (vm, "here", prim_here);
   defprim (vm, ",", prim_comma);
   defprim (vm, "c,", prim_ccomma);
+  defprim (vm, "allot", prim_allot);
 
   defprim (vm, "branch", prim_branch);
   defprim (vm, "0branch", prim_0branch);
@@ -564,6 +640,7 @@ register_prims (vm_t *vm)
   defprim (vm, "execute", prim_execute);
   defprim (vm, "find", prim_find);
   defprim (vm, "state", prim_state);
+  defprim (vm, "latest", prim_latest);
   defprim (vm, ">in", prim_to_in);
   defprim (vm, "parse", prim_parse);
   defprim (vm, "parse-name", prim_parse_name);
