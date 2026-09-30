@@ -108,4 +108,3 @@ only one the oracle checks.
   its prerequisites land (`abort"`, `[ ]`, pictured numerics, …).
   Annex F's Core tests are the acceptance gate for the "ANS Forth
   System" label claimed in [SPEC.md](SPEC.md).
-- `input.fs` — as the input words arrive.

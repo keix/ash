@@ -10,10 +10,10 @@ Update this file in the same commit that adds or moves a word.
 ## Scoreboard
 
 ```text
-ANS Core coverage   128 / 133
-  in C              50
-  in Forth          78
-beyond Core         48  (33 Forth, 15 C)
+ANS Core coverage   133 / 133 — complete
+  in C              52
+  in Forth          81
+beyond Core         52  (35 Forth, 17 C)
 ```
 
 The dot moved: `.` was a C primitive and is now Forth over pictured
@@ -23,9 +23,10 @@ numeric output — the first word burned out of the kernel.
 
 ```text
 ! ' * + , - / 0= : ; < = > >in >r @
-align allot and base c! c, c@ create depth dup drop emit
-execute exit find here immediate invert key lshift mod or over
-quit r> r@ rot rshift state swap um* um/mod xor [']
+accept align allot and base c! c, c@ create depth dup drop
+emit execute exit find here immediate invert key lshift mod or
+over quit r> r@ rot rshift source state swap um* um/mod xor
+[']
 ```
 
 ## Core words implemented in Forth — core.fs
@@ -34,25 +35,19 @@ quit r> r@ rot rshift state swap um* um/mod xor [']
 # #> #s ( ." */ */mod +! +loop . /mod 0< 1+ 1- 2! 2* 2/ 2@
 2drop 2dup 2over 2swap <# >body ?dup [ ] [char] abs aligned
 begin bl cell+ cells char char+ chars constant count cr
-abort abort" decimal do does> else fill fm/mod hold i if j
-leave literal loop m* max min move negate postpone recurse
-repeat s" s>d sign sm/rem space spaces then type u. u< unloop
-until variable while >number
+abort abort" decimal do does> else environment? evaluate fill
+fm/mod hold i if j leave literal loop m* max min move negate
+postpone recurse repeat s" s>d sign sm/rem space spaces then
+type u. u< unloop until variable while word >number
 ```
 
 ## Core words missing — grouped by what unblocks them
 
-Strings and terminal input:
-
-```text
-accept word
-```
-
-Interpreter and system:
-
-```text
-source evaluate environment?
-```
+None. The Core word set is complete. The text interpreter itself is
+Forth (`interpret` in core.fs); `evaluate` wraps it in `catch` so a
+throw unwinds the source stack one level at a time and rethrows.
+Next: the Forth-2012 test suite under `tests/ans/` gates the
+conformance label claimed in [SPEC.md](SPEC.md).
 
 ## Beyond Core
 
@@ -64,14 +59,15 @@ Forth:  nip tuck <> 0<> 0> ?do again hex within  (Core Ext)
         cmove cmove>              (String word set)
         dnegate dabs m+           (Double word set)
         <= >= cell -rot           (common practice, not ANS)
+        interpret                 (common practice, not ANS)
         ,string latest-xt mu/mod ud* >digit >counted
         leave-link (resolve-leaves) handler uncaught
-        abort-msg abort-len (abort")  (Ash internals)
+        abort-msg abort-len (abort") (number)  (Ash internals)
 C:      \ parse  (Core Ext)   bye  (Tools Ext)
         parse-name                (Forth-2012)
         sp@ sp! rp@ rp!           (common practice, not ANS)
         latest lit branch 0branch (does>) (s") (abort)
-                                  (Ash internals)
+        (push-source) (pop-source)  (Ash internals)
 ```
 
 ## Deviations and spec decisions
