@@ -10,10 +10,10 @@ Update this file in the same commit that adds or moves a word.
 ## Scoreboard
 
 ```text
-ANS Core coverage   120 / 133
+ANS Core coverage   123 / 133
   in C              49
-  in Forth          71
-beyond Core         28  (18 Forth, 10 C)
+  in Forth          74
+beyond Core         31  (21 Forth, 10 C)
 ```
 
 The dot moved: `.` was a C primitive and is now Forth over pictured
@@ -31,12 +31,12 @@ r> r@ rot rshift state swap um* um/mod xor [']
 ## Core words implemented in Forth — core.fs
 
 ```text
-# #> #s ( ." */ */mod +! . /mod 0< 1+ 1- 2! 2* 2/ 2@ 2drop
-2dup 2over 2swap <# >body ?dup [ ] [char] abs aligned begin bl
-cell+ cells char char+ chars constant count cr decimal do
-does> else fill fm/mod hold i if literal loop m* max min move
-negate recurse repeat s" s>d sign sm/rem space spaces then
-type u. u< unloop until variable while
+# #> #s ( ." */ */mod +! +loop . /mod 0< 1+ 1- 2! 2* 2/ 2@
+2drop 2dup 2over 2swap <# >body ?dup [ ] [char] abs aligned
+begin bl cell+ cells char char+ chars constant count cr
+decimal do does> else fill fm/mod hold i if j leave literal
+loop m* max min move negate recurse repeat s" s>d sign sm/rem
+space spaces then type u. u< unloop until variable while
 ```
 
 ## Core words missing — grouped by what unblocks them
@@ -59,12 +59,6 @@ Defining words and the compiler surface:
 postpone
 ```
 
-Loops:
-
-```text
-+loop j leave
-```
-
 Interpreter and system:
 
 ```text
@@ -76,11 +70,12 @@ source evaluate quit abort abort" environment?
 Implemented from Core Ext and elsewhere:
 
 ```text
-Forth:  nip tuck <> 0<> 0> again hex  (Core Ext)
+Forth:  nip tuck <> 0<> 0> ?do again hex  (Core Ext)
         cmove cmove>              (String word set)
         dnegate dabs              (Double word set)
         <= >= cell -rot           (common practice, not ANS)
-        ,string latest-xt mu/mod  (Ash internals)
+        ,string latest-xt mu/mod leave-link (resolve-leaves)
+                                  (Ash internals)
 C:      \ parse  (Core Ext)   bye  (Tools Ext)
         parse-name                (Forth-2012)
         latest lit branch 0branch (does>) (s")  (Ash internals)

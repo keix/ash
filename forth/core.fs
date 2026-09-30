@@ -41,24 +41,6 @@
 : while  ['] 0branch , here 0 , swap ; immediate
 : repeat ['] branch , , here swap ! ; immediate
 
-\ Counted loops compile everything inline, so the loop parameters sit
-\ directly on the return stack -- limit below, index on top -- with no
-\ helper word's return address between them. i and unloop compile
-\ inline for the same reason.
-
-: do   ['] swap , ['] >r , ['] >r , here ; immediate
-: loop
-  ['] r> , ['] 1+ , ['] r> , ['] 2dup , ['] = ,
-  ['] 0branch , here 0 ,
-  ['] drop , ['] drop ,
-  ['] branch , here 0 ,
-  swap here swap !
-  ['] >r , ['] >r , ['] branch , swap ,
-  here swap ! ; immediate
-
-: i      ['] r@ , ; immediate
-: unloop ['] r> , ['] drop , ['] r> , ['] drop , ; immediate
-
 \ derived from control flow
 
 : abs  dup 0< if negate then ;
@@ -84,6 +66,68 @@ here 0 , here swap - constant cell
 : char+ 1+ ;
 : chars ;
 : aligned cell 1- + cell 1- invert and ;
+
+\ counted loops, now that variable exists. Everything compiles
+\ inline, so the parameters sit bare on the return stack -- limit
+\ below, index on top. leave branches forward before the loop's end
+\ is known: each leave hole holds the address of the previous one,
+\ and loop walks the chain and patches them all to here.
+
+variable leave-link
+0 leave-link !
+
+: (resolve-leaves)
+  leave-link @
+  begin ?dup while dup @ >r here swap ! r> repeat
+  leave-link ! ;
+
+: do  leave-link @ 0 leave-link !
+      ['] swap , ['] >r , ['] >r , here ; immediate
+
+: ?do leave-link @ 0 leave-link !
+      ['] 2dup , ['] = ,
+      ['] 0branch , here 0 ,
+      ['] drop , ['] drop ,
+      ['] branch , here leave-link @ , leave-link !
+      here swap !
+      ['] swap , ['] >r , ['] >r , here ; immediate
+
+: loop
+  ['] r> , ['] 1+ , ['] r> , ['] 2dup , ['] = ,
+  ['] 0branch , here 0 ,
+  ['] drop , ['] drop ,
+  ['] branch , here 0 ,
+  swap here swap !
+  ['] >r , ['] >r , ['] branch , swap ,
+  here swap !
+  (resolve-leaves) ; immediate
+
+\ +loop terminates when the index crosses the limit boundary:
+\ sign of (i - limit) differs from sign of (i' - limit).
+
+: +loop
+  ['] r> , ['] swap , ['] over , ['] + ,
+  ['] over , ['] r@ , ['] - ,
+  ['] over , ['] r@ , ['] - ,
+  ['] xor , ['] 0< ,
+  ['] rot , ['] drop ,
+  ['] r> , ['] swap ,
+  ['] 0branch , here 0 ,
+  ['] drop , ['] drop ,
+  ['] branch , here 0 ,
+  swap here swap !
+  ['] >r , ['] >r , ['] branch , swap ,
+  here swap !
+  (resolve-leaves) ; immediate
+
+: i      ['] r@ , ; immediate
+: unloop ['] r> , ['] drop , ['] r> , ['] drop , ; immediate
+: j
+  ['] r> , ['] r> , ['] r@ , ['] swap , ['] >r , ['] swap , ['] >r ,
+  ; immediate
+: leave
+  ['] r> , ['] drop , ['] r> , ['] drop ,
+  ['] branch , here leave-link @ , leave-link ! ; immediate
 
 \ memory words
 
