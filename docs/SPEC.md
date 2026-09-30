@@ -33,6 +33,7 @@ word set is complete and passes the Forth-2012 test suite.
 | input sources | terminal (line by line), string; nesting depth 8 |
 | `SOURCE-ID` values | 0 = terminal, -1 = string |
 | whitespace | any char <= 0x20 delimits tokens |
+| `environment?` | every query answers unknown (false), as Forth-2012 permits |
 
 ## Ambiguous conditions
 

@@ -10,9 +10,9 @@ Update this file in the same commit that adds or moves a word.
 ## Scoreboard
 
 ```text
-ANS Core coverage   128 / 133
-  in C              50
-  in Forth          78
+ANS Core coverage   132 / 133
+  in C              52
+  in Forth          80
 beyond Core         48  (33 Forth, 15 C)
 ```
 
@@ -23,9 +23,10 @@ numeric output — the first word burned out of the kernel.
 
 ```text
 ! ' * + , - / 0= : ; < = > >in >r @
-align allot and base c! c, c@ create depth dup drop emit
-execute exit find here immediate invert key lshift mod or over
-quit r> r@ rot rshift state swap um* um/mod xor [']
+accept align allot and base c! c, c@ create depth dup drop
+emit execute exit find here immediate invert key lshift mod or
+over quit r> r@ rot rshift source state swap um* um/mod xor
+[']
 ```
 
 ## Core words implemented in Forth — core.fs
@@ -34,25 +35,23 @@ quit r> r@ rot rshift state swap um* um/mod xor [']
 # #> #s ( ." */ */mod +! +loop . /mod 0< 1+ 1- 2! 2* 2/ 2@
 2drop 2dup 2over 2swap <# >body ?dup [ ] [char] abs aligned
 begin bl cell+ cells char char+ chars constant count cr
-abort abort" decimal do does> else fill fm/mod hold i if j
-leave literal loop m* max min move negate postpone recurse
-repeat s" s>d sign sm/rem space spaces then type u. u< unloop
-until variable while >number
+abort abort" decimal do does> else environment? fill fm/mod
+hold i if j leave literal loop m* max min move negate postpone
+recurse repeat s" s>d sign sm/rem space spaces then type u. u<
+unloop until variable while word >number
 ```
 
 ## Core words missing — grouped by what unblocks them
 
-Strings and terminal input:
+One word remains, and it is an architectural step, not a small one:
 
 ```text
-accept word
+evaluate
 ```
 
-Interpreter and system:
-
-```text
-source evaluate environment?
-```
+A C-primitive evaluate would nest C frames and break THROW across
+its boundary. The real fix is the text interpreter written in Forth;
+evaluate then becomes push-source interpret pop-source, all threaded.
 
 ## Beyond Core
 

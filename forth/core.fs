@@ -296,3 +296,17 @@ variable abort-len
 : abort -1 throw ;
 : (abort") rot if abort-len ! abort-msg ! -2 throw then 2drop ;
 : abort" postpone s" postpone (abort") ; immediate
+
+\ input words. word skips leading delimiters by peeking the source
+\ through >in, then parses and stages a counted string past here.
+
+: word
+  >r
+  begin
+    source nip >in @ >
+    if source drop >in @ + c@ r@ = else 0 then
+  while 1 >in +! repeat
+  r> parse >counted ;
+
+\ every environmental query may answer unknown (Forth-2012)
+: environment? 2drop 0 ;

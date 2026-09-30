@@ -515,6 +515,16 @@ prim_align (vm_t *vm, xt_t xt)
 }
 
 static void
+prim_source (vm_t *vm, xt_t xt)
+{
+  input_source_t *src = active_source (vm);
+
+  (void)xt;
+  push (vm, (cell_t)src->buf);
+  push (vm, src->len);
+}
+
+static void
 prim_allot (vm_t *vm, xt_t xt)
 {
   cell_t n = pop (vm);
@@ -540,6 +550,22 @@ prim_key (vm_t *vm, xt_t xt)
 {
   (void)xt;
   push (vm, getchar ());
+}
+
+/* accept: read up to n1 chars into the buffer, stopping at newline;
+   return the count read */
+static void
+prim_accept (vm_t *vm, xt_t xt)
+{
+  cell_t n1 = pop (vm);
+  char *addr = (char *)pop (vm);
+  cell_t n2 = 0;
+  int c;
+
+  (void)xt;
+  while (n2 < n1 && (c = getchar ()) != EOF && c != '\n')
+    addr[n2++] = (char)c;
+  push (vm, n2);
 }
 
 static void
@@ -742,6 +768,7 @@ register_prims (vm_t *vm)
   defprim (vm, ">in", prim_to_in);
   defprim (vm, "parse", prim_parse);
   defprim (vm, "parse-name", prim_parse_name);
+  defprim (vm, "source", prim_source);
   defprim (vm, "align", prim_align);
   defprim (vm, "(s\")", prim_do_squote);
 
@@ -751,6 +778,7 @@ register_prims (vm_t *vm)
 
   defprim (vm, "emit", prim_emit);
   defprim (vm, "key", prim_key);
+  defprim (vm, "accept", prim_accept);
   defprim (vm, "bye", prim_bye);
 
   vm->xt_lit = defprim (vm, "lit", prim_lit);
