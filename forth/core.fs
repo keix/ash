@@ -310,3 +310,31 @@ variable abort-len
 
 \ every environmental query may answer unknown (Forth-2012)
 : environment? 2drop 0 ;
+
+\ the text interpreter, in forth. A failed conversion throws -13 and
+\ needs no stack cleanup: catch's sp! discards the debris. evaluate
+\ wraps interpret in catch so a throw pops the source stack one
+\ level at a time and rethrows -- no C frames, no leaks.
+
+: (number)
+  dup 0= if -13 throw then
+  over c@ [char] - = over 1 > and
+  dup >r if 1- swap 1+ swap then
+  0 0 2swap >number
+  nip 0<> if -13 throw then
+  drop r> if negate then ;
+
+: interpret
+  begin parse-name dup while
+    2dup >counted find ?dup if
+      2swap 2drop
+      state @ if
+        1 = if execute else , then
+      else drop execute then
+    else
+      drop (number)
+      state @ if postpone literal then
+    then
+  repeat 2drop ;
+
+: evaluate -1 (push-source) ['] interpret catch (pop-source) throw ;

@@ -525,6 +525,32 @@ prim_source (vm_t *vm, xt_t xt)
 }
 
 static void
+prim_push_source (vm_t *vm, xt_t xt)
+{
+  cell_t id = pop (vm);
+  cell_t len = pop (vm);
+  const char *buf = (const char *)pop (vm);
+
+  (void)xt;
+  if (vm->src_depth + 1 >= SOURCE_DEPTH)
+    {
+      fprintf (stderr, "source stack overflow\n");
+      abort_line (vm);
+      vm->rsp = vm->rsp0;
+      vm->ip = NULL;
+      return;
+    }
+  push_source (vm, buf, len, id);
+}
+
+static void
+prim_pop_source (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  pop_source (vm);
+}
+
+static void
 prim_allot (vm_t *vm, xt_t xt)
 {
   cell_t n = pop (vm);
@@ -769,6 +795,8 @@ register_prims (vm_t *vm)
   defprim (vm, "parse", prim_parse);
   defprim (vm, "parse-name", prim_parse_name);
   defprim (vm, "source", prim_source);
+  defprim (vm, "(push-source)", prim_push_source);
+  defprim (vm, "(pop-source)", prim_pop_source);
   defprim (vm, "align", prim_align);
   defprim (vm, "(s\")", prim_do_squote);
 
