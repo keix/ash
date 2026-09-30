@@ -46,10 +46,17 @@ test-session: ash
 test-gforth:
 	gforth tests/tester.fs $(FORTH_TESTS) tests/summary.fs -e bye
 
+ANS_SUITE ?= ../forth-standard-test-suite/src
+
+test-ans: ash
+	@out=$$(./ash $(ANS_SUITE)/prelimtest.fth 2>&1); \
+	echo "$$out" | tail -8; \
+	echo "$$out" | grep -q "^0 tests failed"
+
 format:
 	clang-format -i src/*.c src/*.h tests/c/*.c
 
 clean:
 	rm -rf build ash
 
-.PHONY: all test test-c test-forth test-session test-gforth format clean
+.PHONY: all test test-c test-forth test-session test-gforth test-ans format clean

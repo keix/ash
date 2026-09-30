@@ -35,16 +35,31 @@ slurp (const char *path, cell_t *len)
   return buf;
 }
 
+/* Interpret a file line by line, the ANS input model: SOURCE is the
+   current line and >IN moves within it. Definitions span lines via
+   state; an abort discards only the offending line. */
 static int
 load_file (vm_t *vm, const char *path)
 {
   cell_t len;
   char *buf = slurp (path, &len);
+  cell_t pos = 0;
 
   if (!buf)
     return -1;
-  push_source (vm, buf, len, -1);
-  interpret_source (vm);
+  push_source (vm, buf, 0, -1);
+  while (pos < len)
+    {
+      input_source_t *src = active_source (vm);
+      char *nl = memchr (buf + pos, '\n', (size_t)(len - pos));
+      cell_t line_len = nl ? (cell_t)(nl - (buf + pos)) : len - pos;
+
+      src->buf = buf + pos;
+      src->len = line_len;
+      src->in = 0;
+      interpret_source (vm);
+      pos += line_len + (nl ? 1 : 0);
+    }
   pop_source (vm);
   free (buf);
   return 0;
