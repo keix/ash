@@ -265,3 +265,34 @@ variable hld
     >r 2swap base @ ud* r> m+ 2swap
     swap 1+ swap 1-
   repeat ;
+
+\ exceptions: non-local return as pure return-stack surgery, no
+\ setjmp. catch records both stack pointers; throw restores them and
+\ every threaded continuation in between simply ceases to exist.
+
+variable handler
+0 handler !
+variable abort-msg
+variable abort-len
+
+: catch
+  sp@ >r handler @ >r rp@ handler !
+  execute
+  r> handler ! r> drop 0 ;
+
+: uncaught
+  dup -1 = if drop else
+  dup -2 = if drop abort-msg @ abort-len @ type cr else
+  ." uncaught throw: " . cr then then
+  (abort) ;
+
+: throw
+  ?dup if
+    handler @ 0= if uncaught then
+    handler @ rp! r> handler !
+    r> swap >r sp! drop r>
+  then ;
+
+: abort -1 throw ;
+: (abort") rot if abort-len ! abort-msg ! -2 throw then 2drop ;
+: abort" postpone s" postpone (abort") ; immediate

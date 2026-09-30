@@ -252,6 +252,63 @@ prim_rfetch (vm_t *vm, xt_t xt)
   push (vm, *vm->rsp);
 }
 
+/* stack pointer access: what CATCH/THROW build their surgery on */
+
+static void
+prim_sp_fetch (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  cell_t v = (cell_t)vm->dsp;
+  push (vm, v);
+}
+
+static void
+prim_sp_store (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  vm->dsp = (cell_t *)pop (vm);
+}
+
+static void
+prim_rp_fetch (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, (cell_t)vm->rsp);
+}
+
+static void
+prim_rp_store (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  vm->rsp = (cell_t *)pop (vm);
+}
+
+/* quit and the uncaught-throw landing pad. Setting ip to NULL makes
+   run_xt's loop end after this primitive returns: the clean way back
+   to C from any nesting depth, because Forth control flow never
+   lives on the C stack. */
+
+static void
+prim_quit (vm_t *vm, xt_t xt)
+{
+  input_source_t *src = active_source (vm);
+
+  (void)xt;
+  src->in = src->len;
+  vm->state = 0;
+  vm->rsp = vm->rsp0;
+  vm->ip = NULL;
+}
+
+static void
+prim_do_abort (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  abort_line (vm);
+  vm->rsp = vm->rsp0;
+  vm->ip = NULL;
+}
+
 /* comparison: Forth flags, -1 true and 0 false */
 
 static void
@@ -641,6 +698,13 @@ register_prims (vm_t *vm)
   defprim (vm, "mod", prim_mod);
   defprim (vm, "um*", prim_um_star);
   defprim (vm, "um/mod", prim_um_slash_mod);
+
+  defprim (vm, "sp@", prim_sp_fetch);
+  defprim (vm, "sp!", prim_sp_store);
+  defprim (vm, "rp@", prim_rp_fetch);
+  defprim (vm, "rp!", prim_rp_store);
+  defprim (vm, "quit", prim_quit);
+  defprim (vm, "(abort)", prim_do_abort);
 
   defprim (vm, ">r", prim_tor);
   defprim (vm, "r>", prim_fromr);
