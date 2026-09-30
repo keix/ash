@@ -45,9 +45,10 @@ parse_number (vm_t *vm, const char *tok, size_t len, cell_t *out)
   return 1;
 }
 
-/* Poor man's ABORT until THROW exists in Forth: clear the data
-   stack, leave compile state, discard the parse area. */
-static void
+/* Poor man's ABORT for kernel-level errors: clear the data stack,
+   leave compile state, discard the parse area. The Forth-level
+   (abort) builds on this. */
+void
 abort_line (vm_t *vm)
 {
   input_source_t *src = active_source (vm);

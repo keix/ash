@@ -96,6 +96,7 @@ const char *next_token (vm_t *vm, size_t *len);
 int parse_number (vm_t *vm, const char *tok, size_t len, cell_t *out);
 void interpret_token (vm_t *vm, const char *tok, size_t len);
 void interpret_source (vm_t *vm);
+void abort_line (vm_t *vm);
 
 /* prims.c */
 void register_prims (vm_t *vm);

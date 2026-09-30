@@ -131,6 +131,55 @@ prim_mod (vm_t *vm, xt_t xt)
   push (vm, pop (vm) % b);
 }
 
+/* unsigned 64x64 -> 128 multiply, portable 32-bit halves. The cell
+   is 64 bits by SPEC.md; no compiler 128-bit extension needed. */
+static void
+prim_um_star (vm_t *vm, xt_t xt)
+{
+  uintptr_t b = (uintptr_t)pop (vm);
+  uintptr_t a = (uintptr_t)pop (vm);
+  uintptr_t al = a & 0xffffffffu, ah = a >> 32;
+  uintptr_t bl = b & 0xffffffffu, bh = b >> 32;
+  uintptr_t ll = al * bl;
+  uintptr_t mid = ah * bl + (ll >> 32); /* cannot overflow */
+  uintptr_t mid2 = al * bh + (mid & 0xffffffffu);
+  uintptr_t hi = ah * bh + (mid >> 32) + (mid2 >> 32);
+  uintptr_t lo = (mid2 << 32) | (ll & 0xffffffffu);
+
+  (void)xt;
+  push (vm, (cell_t)lo);
+  push (vm, (cell_t)hi);
+}
+
+/* 128 / 64 -> 64 remainder and quotient, restoring division.
+   Quotient overflow (hi >= u) is an ambiguous condition. */
+static void
+prim_um_slash_mod (vm_t *vm, xt_t xt)
+{
+  uintptr_t u = (uintptr_t)pop (vm);
+  uintptr_t hi = (uintptr_t)pop (vm);
+  uintptr_t lo = (uintptr_t)pop (vm);
+  uintptr_t q = 0, r = hi;
+  int i;
+
+  (void)xt;
+  for (i = 0; i < 64; i++)
+    {
+      uintptr_t carry = r >> 63;
+
+      r = (r << 1) | (lo >> 63);
+      lo <<= 1;
+      q <<= 1;
+      if (carry || r >= u)
+        {
+          r -= u;
+          q |= 1;
+        }
+    }
+  push (vm, (cell_t)r);
+  push (vm, (cell_t)q);
+}
+
 /* logic and shifts. rshift is logical, per ANS */
 
 static void
@@ -201,6 +250,63 @@ prim_rfetch (vm_t *vm, xt_t xt)
 {
   (void)xt;
   push (vm, *vm->rsp);
+}
+
+/* stack pointer access: what CATCH/THROW build their surgery on */
+
+static void
+prim_sp_fetch (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  cell_t v = (cell_t)vm->dsp;
+  push (vm, v);
+}
+
+static void
+prim_sp_store (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  vm->dsp = (cell_t *)pop (vm);
+}
+
+static void
+prim_rp_fetch (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, (cell_t)vm->rsp);
+}
+
+static void
+prim_rp_store (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  vm->rsp = (cell_t *)pop (vm);
+}
+
+/* quit and the uncaught-throw landing pad. Setting ip to NULL makes
+   run_xt's loop end after this primitive returns: the clean way back
+   to C from any nesting depth, because Forth control flow never
+   lives on the C stack. */
+
+static void
+prim_quit (vm_t *vm, xt_t xt)
+{
+  input_source_t *src = active_source (vm);
+
+  (void)xt;
+  src->in = src->len;
+  vm->state = 0;
+  vm->rsp = vm->rsp0;
+  vm->ip = NULL;
+}
+
+static void
+prim_do_abort (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  abort_line (vm);
+  vm->rsp = vm->rsp0;
+  vm->ip = NULL;
 }
 
 /* comparison: Forth flags, -1 true and 0 false */
@@ -355,6 +461,13 @@ prim_latest (vm_t *vm, xt_t xt)
 }
 
 static void
+prim_base (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, (cell_t)&vm->base);
+}
+
+static void
 prim_to_in (vm_t *vm, xt_t xt)
 {
   (void)xt;
@@ -427,31 +540,6 @@ prim_key (vm_t *vm, xt_t xt)
 {
   (void)xt;
   push (vm, getchar ());
-}
-
-static void
-prim_dot (vm_t *vm, xt_t xt)
-{
-  (void)xt;
-  static const char digits[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  char buf[8 * sizeof (cell_t) + 2];
-  char *p = buf + sizeof buf;
-  cell_t x = pop (vm);
-  uintmax_t base = (vm->base < 2 || vm->base > 36) ? 10 : (uintmax_t)vm->base;
-  uintmax_t u = (uintmax_t)x;
-
-  if (x < 0)
-    u = -u;
-  *--p = ' ';
-  do
-    {
-      *--p = digits[u % base];
-      u /= base;
-    }
-  while (u);
-  if (x < 0)
-    *--p = '-';
-  fwrite (p, 1, (size_t)(buf + sizeof buf - p), stdout);
 }
 
 static void
@@ -608,6 +696,15 @@ register_prims (vm_t *vm)
   defprim (vm, "*", prim_mul);
   defprim (vm, "/", prim_div);
   defprim (vm, "mod", prim_mod);
+  defprim (vm, "um*", prim_um_star);
+  defprim (vm, "um/mod", prim_um_slash_mod);
+
+  defprim (vm, "sp@", prim_sp_fetch);
+  defprim (vm, "sp!", prim_sp_store);
+  defprim (vm, "rp@", prim_rp_fetch);
+  defprim (vm, "rp!", prim_rp_store);
+  defprim (vm, "quit", prim_quit);
+  defprim (vm, "(abort)", prim_do_abort);
 
   defprim (vm, ">r", prim_tor);
   defprim (vm, "r>", prim_fromr);
@@ -641,6 +738,7 @@ register_prims (vm_t *vm)
   defprim (vm, "find", prim_find);
   defprim (vm, "state", prim_state);
   defprim (vm, "latest", prim_latest);
+  defprim (vm, "base", prim_base);
   defprim (vm, ">in", prim_to_in);
   defprim (vm, "parse", prim_parse);
   defprim (vm, "parse-name", prim_parse_name);
@@ -651,7 +749,6 @@ register_prims (vm_t *vm)
   defprim (vm, "[']", prim_bracket_tick);
   vm->latest->flags |= F_IMMEDIATE;
 
-  defprim (vm, ".", prim_dot);
   defprim (vm, "emit", prim_emit);
   defprim (vm, "key", prim_key);
   defprim (vm, "bye", prim_bye);

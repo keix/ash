@@ -41,3 +41,12 @@ t{ tw -> 12 }t
 t{ 5 fact -> 120 }t
 t{ 1 fact -> 1 }t
 t{ 0 fact -> 0 }t
+
+\ postpone: immediate and normal targets
+: endif postpone then ; immediate
+: pt1 if 111 else 222 endif ;
+t{ -1 pt1 -> 111 }t
+t{ 0 pt1 -> 222 }t
+: compile-dup postpone dup ; immediate
+: pt2 compile-dup * ;
+t{ 5 pt2 -> 25 }t

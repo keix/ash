@@ -46,3 +46,26 @@ t{ 1 -1 u< -> -1 }t
 t{ 0 0 u< -> 0 }t
 t{ 5 s>d -> 5 0 }t
 t{ -5 s>d -> -5 -1 }t
+t{ 3 4 um* -> 12 0 }t
+t{ -1 2 um* -> -2 1 }t
+t{ 12 0 3 um/mod -> 0 4 }t
+t{ -2 1 2 um/mod -> 0 -1 }t
+t{ 3 4 m* -> 12 0 }t
+t{ -3 4 m* -> -12 -1 }t
+t{ -3 -4 m* -> 12 0 }t
+t{ 0 0 dnegate -> 0 0 }t
+t{ 1 0 dnegate -> -1 -1 }t
+t{ 7 s>d 3 sm/rem -> 1 2 }t
+t{ -7 s>d 3 sm/rem -> -1 -2 }t
+t{ 7 s>d -3 sm/rem -> 1 -2 }t
+t{ -7 s>d -3 sm/rem -> -1 2 }t
+t{ 7 s>d 3 fm/mod -> 1 2 }t
+t{ -7 s>d 3 fm/mod -> 2 -3 }t
+t{ 7 s>d -3 fm/mod -> -2 -3 }t
+t{ -7 s>d -3 fm/mod -> -1 2 }t
+t{ 5 7 11 */mod -> 2 3 }t
+t{ 5 7 11 */ -> 3 }t
+t{ 5 1 10 within -> -1 }t
+t{ 1 1 10 within -> -1 }t
+t{ 0 1 10 within -> 0 }t
+t{ 10 1 10 within -> 0 }t

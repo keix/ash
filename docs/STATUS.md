@@ -10,29 +10,34 @@ Update this file in the same commit that adds or moves a word.
 ## Scoreboard
 
 ```text
-ANS Core coverage   104 / 133
-  in C              47
-  in Forth          57
-beyond Core         23  (13 Forth, 10 C)
+ANS Core coverage   128 / 133
+  in C              50
+  in Forth          78
+beyond Core         48  (33 Forth, 15 C)
 ```
+
+The dot moved: `.` was a C primitive and is now Forth over pictured
+numeric output — the first word burned out of the kernel.
 
 ## Core words implemented in C — the bootstrapping boundary
 
 ```text
-! ' * + , - . / 0= : ; < = > >in >r @
-align allot and c! c, c@ create depth dup drop emit execute
-exit find here immediate invert key lshift mod or over r> r@
-rot rshift state swap xor [']
+! ' * + , - / 0= : ; < = > >in >r @
+align allot and base c! c, c@ create depth dup drop emit
+execute exit find here immediate invert key lshift mod or over
+quit r> r@ rot rshift state swap um* um/mod xor [']
 ```
 
 ## Core words implemented in Forth — core.fs
 
 ```text
-( ." +! /mod 0< 1+ 1- 2! 2* 2/ 2@ 2drop 2dup 2over 2swap
->body ?dup [ ] [char] abs aligned begin bl cell+ cells char
-char+ chars constant count cr do does> else fill i if literal
-loop max min move negate recurse repeat s" s>d space spaces
-then type u< unloop until variable while
+# #> #s ( ." */ */mod +! +loop . /mod 0< 1+ 1- 2! 2* 2/ 2@
+2drop 2dup 2over 2swap <# >body ?dup [ ] [char] abs aligned
+begin bl cell+ cells char char+ chars constant count cr
+abort abort" decimal do does> else fill fm/mod hold i if j
+leave literal loop m* max min move negate postpone recurse
+repeat s" s>d sign sm/rem space spaces then type u. u< unloop
+until variable while >number
 ```
 
 ## Core words missing — grouped by what unblocks them
@@ -43,29 +48,10 @@ Strings and terminal input:
 accept word
 ```
 
-Pictured numeric output (needs `base` as a word and a hold area;
-burning the C `.` down to Forth rides on this):
-
-```text
-# #> #s <# hold sign u. decimal base >number
-```
-
-Defining words and the compiler surface:
-
-```text
-postpone
-```
-
-Arithmetic and loops:
-
-```text
-*/ */mod m* um* um/mod fm/mod sm/rem +loop j leave
-```
-
 Interpreter and system:
 
 ```text
-source evaluate quit abort abort" environment?
+source evaluate environment?
 ```
 
 ## Beyond Core
@@ -73,13 +59,19 @@ source evaluate quit abort abort" environment?
 Implemented from Core Ext and elsewhere:
 
 ```text
-Forth:  nip tuck <> 0> again      (Core Ext)
+Forth:  nip tuck <> 0<> 0> ?do again hex within  (Core Ext)
+        catch throw               (Exception word set)
         cmove cmove>              (String word set)
+        dnegate dabs m+           (Double word set)
         <= >= cell -rot           (common practice, not ANS)
-        ,string latest-xt         (Ash internals)
+        ,string latest-xt mu/mod ud* >digit >counted
+        leave-link (resolve-leaves) handler uncaught
+        abort-msg abort-len (abort")  (Ash internals)
 C:      \ parse  (Core Ext)   bye  (Tools Ext)
         parse-name                (Forth-2012)
-        latest lit branch 0branch (does>) (s")  (Ash internals)
+        sp@ sp! rp@ rp!           (common practice, not ANS)
+        latest lit branch 0branch (does>) (s") (abort)
+                                  (Ash internals)
 ```
 
 ## Deviations and spec decisions
