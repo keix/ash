@@ -15,7 +15,7 @@
 : 1+ 1 + ;
 : 1- 1 - ;
 : 2* 2 * ;
-: 2/ 2 / ;
+\ 2/ is defined after the compiler surface: it needs [ ] literal
 
 \ comparison
 
@@ -310,6 +310,15 @@ variable abort-len
 
 \ every environmental query may answer unknown (Forth-2012)
 : environment? 2drop 0 ;
+
+\ 2/ is an arithmetic shift, not division: the sign bit propagates,
+\ so -1 2/ is -1. The mask is computed once, at compile time.
+
+: 2/ dup 1 rshift swap 0< [ 1 cell 8 * 1- lshift ] literal and or ;
+
+0 constant false
+-1 constant true
+: .( 41 parse type ; immediate
 
 \ the text interpreter, in forth. A failed conversion throws -13 and
 \ needs no stack cleanup: catch's sp! discards the debris. evaluate

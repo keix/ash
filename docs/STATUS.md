@@ -13,7 +13,10 @@ Update this file in the same commit that adds or moves a word.
 ANS Core coverage   133 / 133 — complete
   in C              52
   in Forth          81
-beyond Core         52  (35 Forth, 17 C)
+beyond Core         55  (38 Forth, 17 C)
+
+Forth-2012 suite    prelimtest.fth  0 of 57 failed
+                    core.fr         0 failures
 ```
 
 The dot moved: `.` was a C primitive and is now Forth over pictured
@@ -54,7 +57,8 @@ conformance label claimed in [SPEC.md](SPEC.md).
 Implemented from Core Ext and elsewhere:
 
 ```text
-Forth:  nip tuck <> 0<> 0> ?do again hex within  (Core Ext)
+Forth:  nip tuck <> 0<> 0> .( ?do again false hex true within
+                                  (Core Ext)
         catch throw               (Exception word set)
         cmove cmove>              (String word set)
         dnegate dabs m+           (Double word set)
