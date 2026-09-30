@@ -10,10 +10,10 @@ Update this file in the same commit that adds or moves a word.
 ## Scoreboard
 
 ```text
-ANS Core coverage   123 / 133
+ANS Core coverage   125 / 133
   in C              49
-  in Forth          74
-beyond Core         31  (21 Forth, 10 C)
+  in Forth          76
+beyond Core         36  (26 Forth, 10 C)
 ```
 
 The dot moved: `.` was a C primitive and is now Forth over pictured
@@ -35,8 +35,9 @@ r> r@ rot rshift state swap um* um/mod xor [']
 2drop 2dup 2over 2swap <# >body ?dup [ ] [char] abs aligned
 begin bl cell+ cells char char+ chars constant count cr
 decimal do does> else fill fm/mod hold i if j leave literal
-loop m* max min move negate recurse repeat s" s>d sign sm/rem
-space spaces then type u. u< unloop until variable while
+loop m* max min move negate postpone recurse repeat s" s>d
+sign sm/rem space spaces then type u. u< unloop until variable
+while >number
 ```
 
 ## Core words missing — grouped by what unblocks them
@@ -45,18 +46,6 @@ Strings and terminal input:
 
 ```text
 accept word
-```
-
-Numeric input:
-
-```text
->number
-```
-
-Defining words and the compiler surface:
-
-```text
-postpone
 ```
 
 Interpreter and system:
@@ -70,12 +59,12 @@ source evaluate quit abort abort" environment?
 Implemented from Core Ext and elsewhere:
 
 ```text
-Forth:  nip tuck <> 0<> 0> ?do again hex  (Core Ext)
+Forth:  nip tuck <> 0<> 0> ?do again hex within  (Core Ext)
         cmove cmove>              (String word set)
-        dnegate dabs              (Double word set)
+        dnegate dabs m+           (Double word set)
         <= >= cell -rot           (common practice, not ANS)
-        ,string latest-xt mu/mod leave-link (resolve-leaves)
-                                  (Ash internals)
+        ,string latest-xt mu/mod ud* >digit >counted
+        leave-link (resolve-leaves)  (Ash internals)
 C:      \ parse  (Core Ext)   bye  (Tools Ext)
         parse-name                (Forth-2012)
         latest lit branch 0branch (does>) (s")  (Ash internals)

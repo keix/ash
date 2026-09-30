@@ -13,3 +13,11 @@ t{ 255 0 16 base ! <# #s #> nip decimal -> 2 }t
 t{ 255 0 16 base ! <# #s #> drop c@ decimal -> 70 }t
 t{ -123 dup abs 0 <# #s rot sign #> nip -> 4 }t
 t{ -123 dup abs 0 <# #s rot sign #> drop c@ -> 45 }t
+: nstr1 s" 123" ;
+t{ 0 0 nstr1 >number 2drop -> 123 0 }t
+: nstr2 s" 45x7" ;
+t{ 0 0 nstr2 >number nip nip nip -> 2 }t
+t{ 0 0 nstr2 >number 2drop drop -> 45 }t
+t{ 0 0 nstr2 >number drop nstr2 drop - nip nip -> 2 }t
+: nstr4 s" 18446744073709551616" ;
+t{ 0 0 nstr4 >number 2drop -> 0 1 }t

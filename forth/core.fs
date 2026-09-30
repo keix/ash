@@ -169,6 +169,7 @@ variable leave-link
 : /mod 2dup mod -rot / ;
 : u< 2dup xor 0< if nip 0< else - 0< then ;
 : s>d dup 0< ;
+: within over - >r - r> u< ;
 
 \ copying memory. move picks the direction, so overlap is safe.
 
@@ -189,6 +190,19 @@ variable leave-link
 : ] -1 state ! ;
 : latest-xt latest cell+ 1+ dup c@ swap 1+ + aligned cell+ ;
 : recurse latest-xt , ; immediate
+
+\ postpone appends compilation semantics: an immediate word's xt is
+\ compiled directly; a normal word gets lit xt , so the definer
+\ compiles it later. >counted stages the name for find in the free
+\ space past here -- transient, overwritten by the next comma.
+
+: >counted dup here c! here 1+ swap cmove here ;
+: postpone
+  parse-name >counted find ?dup 0= if
+    drop ." postpone: word not found" cr
+  else
+    1 = if , else ['] lit , , ['] , , then
+  then ; immediate
 
 \ double-cell arithmetic over um* and um/mod
 
@@ -234,3 +248,20 @@ variable hld
 
 : u. 0 <# #s #> type space ;
 : . dup abs 0 <# #s rot sign #> type space ;
+
+\ numeric input: accumulate digits into a double in BASE.
+
+: m+ swap >r dup >r + dup r> u< negate r> + ;
+: ud* tuck * >r um* r> + ;
+: >digit
+  dup [char] 0 [char] : within if [char] 0 - -1 exit then
+  dup [char] a [char] { within if [char] a - 10 + -1 exit then
+  dup [char] A [char] [ within if [char] A - 10 + -1 exit then
+  0 ;
+: >number
+  begin dup 0> while
+    over c@ >digit 0= if drop exit then
+    dup base @ < 0= if drop exit then
+    >r 2swap base @ ud* r> m+ 2swap
+    swap 1+ swap 1-
+  repeat ;

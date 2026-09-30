@@ -65,3 +65,7 @@ t{ 7 s>d -3 fm/mod -> -2 -3 }t
 t{ -7 s>d -3 fm/mod -> -1 2 }t
 t{ 5 7 11 */mod -> 2 3 }t
 t{ 5 7 11 */ -> 3 }t
+t{ 5 1 10 within -> -1 }t
+t{ 1 1 10 within -> -1 }t
+t{ 0 1 10 within -> 0 }t
+t{ 10 1 10 within -> 0 }t
