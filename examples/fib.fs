@@ -4,6 +4,6 @@
   dup 2 < if exit then
   dup 1- recurse swap 2 - recurse + ;
 
-: fibs 15 0 do i fib . loop cr ;
+: fibs 40 0 do i fib . loop cr ;
 
 fibs
