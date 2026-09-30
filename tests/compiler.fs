@@ -50,3 +50,14 @@ t{ 0 pt1 -> 222 }t
 : compile-dup postpone dup ; immediate
 : pt2 compile-dup * ;
 t{ 5 pt2 -> 25 }t
+
+\ :noname and number prefixes
+t{ :noname 6 7 * ; execute -> 42 }t
+t{ #123 -> 123 }t
+t{ #-99 -> -99 }t
+t{ $ff -> 255 }t
+t{ $-A -> -10 }t
+t{ %1011 -> 11 }t
+t{ %-10 -> -2 }t
+t{ 'A' -> 65 }t
+t{ 'z' -> 122 }t

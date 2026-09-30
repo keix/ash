@@ -2,25 +2,49 @@
 
 #include "ash.h"
 
-/* Convert tok in the current BASE. Accepts an optional leading '-';
-   digits are 0-9 then a-z / A-Z up to the base. */
+/* Convert tok in the current BASE, honoring the Forth-2012 prefixes
+   # (decimal), $ (hex), % (binary), and 'c' character literals. An
+   optional '-' follows the prefix; digits are 0-9 then a-z / A-Z up
+   to the base. Keep in sync with (number) in core.fs. */
 int
 parse_number (vm_t *vm, const char *tok, size_t len, cell_t *out)
 {
+  cell_t b = vm->base;
   uintmax_t base;
   uintmax_t u = 0;
   int neg = 0;
   size_t i = 0;
 
-  /* BASE is Forth-writable; out of range must not become C UB */
-  if (vm->base < 2 || vm->base > 36)
-    return 0;
-  base = (uintmax_t)vm->base;
+  if (len == 3 && tok[0] == '\'' && tok[2] == '\'')
+    {
+      *out = (uint8_t)tok[1];
+      return 1;
+    }
+  if (len > 0 && tok[0] == '#')
+    {
+      b = 10;
+      i = 1;
+    }
+  else if (len > 0 && tok[0] == '$')
+    {
+      b = 16;
+      i = 1;
+    }
+  else if (len > 0 && tok[0] == '%')
+    {
+      b = 2;
+      i = 1;
+    }
 
-  if (len > 0 && tok[0] == '-')
+  /* BASE is Forth-writable; out of range must not become C UB */
+  if (b < 2 || b > 36)
+    return 0;
+  base = (uintmax_t)b;
+
+  if (i < len && tok[i] == '-')
     {
       neg = 1;
-      i = 1;
+      i++;
     }
   if (i >= len)
     return 0;

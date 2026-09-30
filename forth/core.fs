@@ -81,8 +81,29 @@ variable leave-link
   begin ?dup while dup @ >r here swap ! r> repeat
   leave-link ! ;
 
-: do  leave-link @ 0 leave-link !
-      ['] swap , ['] >r , ['] >r , here ; immediate
+\ Loop parameters ride the return stack biased by min-int:
+\ x = index - limit + min-int with s = limit - min-int beneath it,
+\ so i is x + s, and the loop ends exactly when x + step overflows
+\ signed -- the ANS boundary between limit-1 and limit, correct at
+\ any step size including wraparound.
+
+: ,msb ['] lit , 1 cell 8 * 1- lshift , ;
+: ,do-setup
+  ['] over , ,msb ['] - , ['] >r ,
+  ['] swap , ['] - , ,msb ['] + , ['] >r , ;
+: ,loop-check
+  ['] r> , ['] 2dup , ['] + , ['] >r ,
+  ['] 2dup , ['] xor , ['] invert ,
+  ['] swap , ['] r@ , ['] xor , ['] and , ['] nip , ['] 0< ,
+  ['] 0branch , here 0 ,
+  ['] r> , ['] drop , ['] r> , ['] drop ,
+  ['] branch , here 0 ,
+  swap here swap !
+  ['] branch , swap ,
+  here swap !
+  (resolve-leaves) ;
+
+: do  leave-link @ 0 leave-link ! ,do-setup here ; immediate
 
 : ?do leave-link @ 0 leave-link !
       ['] 2dup , ['] = ,
@@ -90,40 +111,17 @@ variable leave-link
       ['] drop , ['] drop ,
       ['] branch , here leave-link @ , leave-link !
       here swap !
-      ['] swap , ['] >r , ['] >r , here ; immediate
+      ,do-setup here ; immediate
 
-: loop
-  ['] r> , ['] 1+ , ['] r> , ['] 2dup , ['] = ,
-  ['] 0branch , here 0 ,
-  ['] drop , ['] drop ,
-  ['] branch , here 0 ,
-  swap here swap !
-  ['] >r , ['] >r , ['] branch , swap ,
-  here swap !
-  (resolve-leaves) ; immediate
+: loop ['] lit , 1 , ,loop-check ; immediate
+: +loop ,loop-check ; immediate
 
-\ +loop terminates when the index crosses the limit boundary:
-\ sign of (i - limit) differs from sign of (i' - limit).
-
-: +loop
-  ['] r> , ['] swap , ['] over , ['] + ,
-  ['] over , ['] r@ , ['] - ,
-  ['] over , ['] r@ , ['] - ,
-  ['] xor , ['] 0< ,
-  ['] rot , ['] drop ,
-  ['] r> , ['] swap ,
-  ['] 0branch , here 0 ,
-  ['] drop , ['] drop ,
-  ['] branch , here 0 ,
-  swap here swap !
-  ['] >r , ['] >r , ['] branch , swap ,
-  here swap !
-  (resolve-leaves) ; immediate
-
-: i      ['] r@ , ; immediate
+: i ['] r> , ['] dup , ['] r@ , ['] + , ['] swap , ['] >r , ; immediate
 : unloop ['] r> , ['] drop , ['] r> , ['] drop , ; immediate
 : j
-  ['] r> , ['] r> , ['] r@ , ['] swap , ['] >r , ['] swap , ['] >r ,
+  ['] r> , ['] r> , ['] r> , ['] dup , ['] r@ , ['] + ,
+  ['] swap , ['] >r , ['] rot , ['] swap , ['] rot , ['] >r ,
+  ['] swap , ['] >r ,
   ; immediate
 : leave
   ['] r> , ['] drop , ['] r> , ['] drop ,
@@ -197,6 +195,12 @@ variable leave-link
 \ space past here -- transient, overwritten by the next comma.
 
 : >counted dup here c! here 1+ swap cmove here ;
+
+\ :noname lays a headerless code field -- does cell, then docol
+\ copied at compile time from any colon word's code field -- and
+\ leaves the xt on the stack for the ; that ends the definition.
+
+: :noname align 0 , here [ ' nip @ ] literal , ] ;
 : postpone
   parse-name >counted find ?dup 0= if
     drop ." postpone: word not found" cr
@@ -325,13 +329,26 @@ variable abort-len
 \ wraps interpret in catch so a throw pops the source stack one
 \ level at a time and rethrows -- no C frames, no leaks.
 
+\ keep in sync with parse_number in interp.c: 'c' char literals and
+\ the Forth-2012 prefixes # $ % with the sign after the prefix.
+
 : (number)
   dup 0= if -13 throw then
+  dup 3 = if
+    over dup c@ [char] ' = swap 2 + c@ [char] ' = and if
+      drop 1+ c@ exit
+    then
+  then
+  base @ >r
+  over c@ [char] # = if 10 base ! swap 1+ swap 1- else
+  over c@ [char] $ = if 16 base ! swap 1+ swap 1- else
+  over c@ [char] % = if  2 base ! swap 1+ swap 1- then then then
+  dup 0= if r> base ! -13 throw then
   over c@ [char] - = over 1 > and
   dup >r if 1- swap 1+ swap then
   0 0 2swap >number
-  nip 0<> if -13 throw then
-  drop r> if negate then ;
+  nip 0<> if r> drop r> base ! -13 throw then
+  drop r> if negate then r> base ! ;
 
 : interpret
   begin parse-name dup while

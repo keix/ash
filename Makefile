@@ -52,9 +52,9 @@ test-ans: ash
 	@out=$$(./ash $(ANS_SUITE)/prelimtest.fth 2>&1); \
 	echo "$$out" | grep -q "^0 tests failed" || { echo "$$out"; exit 1; }; \
 	echo "ans preliminary tests passed"; \
-	out=$$(./ash $(ANS_SUITE)/tester.fr $(ANS_SUITE)/core.fr < /dev/null 2>&1); \
+	out=$$(./ash $(ANS_SUITE)/tester.fr $(ANS_SUITE)/core.fr $(ANS_SUITE)/coreplustest.fth < /dev/null 2>&1); \
 	if echo "$$out" | grep -E "INCORRECT|WRONG NUMBER|undefined word"; then exit 1; fi; \
-	echo "ans core tests passed"
+	echo "ans core and coreplus tests passed"
 
 format:
 	clang-format -i src/*.c src/*.h tests/c/*.c
