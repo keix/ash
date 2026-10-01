@@ -55,7 +55,7 @@ documentation the label obliges.
 
 | Condition | Behavior |
 |---|---|
-| undefined word | message to stderr; data stack cleared, compile state left, rest of the parse area discarded |
+| undefined word | in the C boot interpreter (repl, files): message to stderr, data stack cleared, compile state left, rest of the current line discarded. In the Forth interpreter (`evaluate`): `throw -13` |
 | stack underflow / overflow | detected between tokens at the outer interpreter — after the fact; recovery as above. A single word can still run past the physical ends unchecked; the inner loop is uninstrumented |
 | dictionary overflow | `allot` reports `dictionary full` and exits (fatal) |
 | name empty or over 255 chars | rejected; `:` and `create` report and discard the line |

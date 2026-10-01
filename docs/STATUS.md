@@ -13,7 +13,7 @@ Update this file in the same commit that adds or moves a word.
 ANS Core coverage   133 / 133 — complete
   in C              52
   in Forth          81
-beyond Core         55  (38 Forth, 17 C)
+beyond Core         59  (42 Forth, 17 C)
 
 Forth-2012 suite    prelimtest.fth   0 of 57 failed
                     core.fr          0 failures

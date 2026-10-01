@@ -9,9 +9,10 @@ what it does, in call order, with the stacks drawn at each step.
 main
  ├─ register_prims            C primitives into the dictionary
  ├─ load_file "forth/core.fs"
- │    ├─ push_source          file text becomes the active source
- │    ├─ interpret_source     the ordinary outer loop, nothing special
- │    └─ pop_source
+ │    ├─ push_source          one source for the whole file...
+ │    ├─ per line:            ...rebound to each line in turn, the
+ │    │    interpret_source      ANS model: SOURCE is the current
+ │    └─ pop_source              line, >IN moves within it
  ├─ argv files                same path as core.fs, then exit
  └─ repl                      no argv: fgets → src[0] → interpret_source
 ```
@@ -195,8 +196,7 @@ run:     dispatch((s")):
 
 ## Input sources nest and resume
 
-`core.fs` loading, `evaluate` (future), and the REPL all share one
-picture:
+`core.fs` loading, `evaluate`, and the REPL all share one picture:
 
 ```text
             src[0] terminal  "1 2 evaluate-something 3 4"
