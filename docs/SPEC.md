@@ -12,8 +12,24 @@ decision changes, in the same commit.
 
 Ash targets the ANS Forth Core word set, with selected later-standard
 words where they simplify the system. The Core word set is complete
-(133/133); the label "ANS Forth System" will be claimed when it
-passes the Forth-2012 test suite.
+(133/133) and the Forth-2012 test suite's Core tests pass
+(`make test-ans`: prelimtest, core.fr, coreplustest), so Ash claims
+the label, with the phrases the standard requires for the optional
+word sets it touches:
+
+```text
+ANS Forth System
+Providing name(s) from the Core Extensions word set
+Providing the Exception word set
+Providing the Exception Extensions word set
+Providing name(s) from the Double-Number word set
+Providing name(s) from the String word set
+Providing name(s) from the Programming-Tools Extensions word set
+```
+
+The suite is the gate Ash set for itself, not a proof: no test suite
+can demonstrate conformance. The rest of this file is the
+documentation the label obliges.
 
 ## Implementation-defined options
 
@@ -39,7 +55,7 @@ passes the Forth-2012 test suite.
 
 | Condition | Behavior |
 |---|---|
-| undefined word | message to stderr; data stack cleared, compile state left, rest of the parse area discarded |
+| undefined word | in the C boot interpreter (repl, files): message to stderr, data stack cleared, compile state left, rest of the current line discarded. In the Forth interpreter (`evaluate`): `throw -13` |
 | stack underflow / overflow | detected between tokens at the outer interpreter — after the fact; recovery as above. A single word can still run past the physical ends unchecked; the inner loop is uninstrumented |
 | dictionary overflow | `allot` reports `dictionary full` and exits (fatal) |
 | name empty or over 255 chars | rejected; `:` and `create` report and discard the line |
@@ -62,9 +78,15 @@ passes the Forth-2012 test suite.
 
 ## Extensions beyond the Core word set
 
-- From other word sets: `\` (Core Ext), `nip tuck <> 0> again`
-  (Core Ext), `bye` (Tools Ext).
-- Common practice, not ANS: `<=`, `>=`, `cell`.
+The word-by-word list is the Beyond Core section of
+[STATUS.md](STATUS.md); this is its shape:
+
+- From other ANS word sets: names from Core Ext, Double-Number,
+  String, and Tools Ext; all of Exception (`catch throw`) and
+  Exception Ext (`abort` and `abort"` throw -1 and -2).
+- From Forth-2012: `parse-name`, and the number prefixes above.
+- Common practice, not ANS: `<=`, `>=`, `cell`, `-rot`, `interpret`,
+  `sp@ sp! rp@ rp!`.
 - Ash internals exposed as words: `lit`, `branch`, `0branch`,
-  `(does>)`.
+  `(does>)`, and the other parenthesized names STATUS.md lists.
 - Interactive startup prints a license banner when stdin is a tty.

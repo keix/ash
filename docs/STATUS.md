@@ -13,7 +13,7 @@ Update this file in the same commit that adds or moves a word.
 ANS Core coverage   133 / 133 — complete
   in C              52
   in Forth          81
-beyond Core         55  (38 Forth, 17 C)
+beyond Core         59  (42 Forth, 17 C)
 
 Forth-2012 suite    prelimtest.fth   0 of 57 failed
                     core.fr          0 failures
@@ -50,8 +50,8 @@ type u. u< unloop until variable while word >number
 None. The Core word set is complete. The text interpreter itself is
 Forth (`interpret` in core.fs); `evaluate` wraps it in `catch` so a
 throw unwinds the source stack one level at a time and rethrows.
-Next: the Forth-2012 test suite under `tests/ans/` gates the
-conformance label claimed in [SPEC.md](SPEC.md).
+The Forth-2012 test suite gated the conformance label; `make test-ans`
+passes, and the label is claimed in [SPEC.md](SPEC.md).
 
 ## Beyond Core
 
