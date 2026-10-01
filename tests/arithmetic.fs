@@ -69,3 +69,8 @@ t{ 5 1 10 within -> -1 }t
 t{ 1 1 10 within -> -1 }t
 t{ 0 1 10 within -> 0 }t
 t{ 10 1 10 within -> 0 }t
+t{ -1 2/ -> -1 }t
+t{ -2 2/ -> -1 }t
+t{ -5 2/ -> -3 }t
+t{ false -> 0 }t
+t{ true -> -1 }t

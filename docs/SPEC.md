@@ -25,12 +25,12 @@ passes the Forth-2012 test suite.
 | case sensitivity | dictionary lookup is ASCII case-insensitive |
 | division rounding | `/ mod /mod */ */mod` are symmetric; both `fm/mod` (floored) and `sm/rem` (symmetric) are provided |
 | flags | true = -1, false = 0 |
-| number conversion | radix is `BASE`, valid 2..36; digits `0-9` then `a-z`/`A-Z` |
+| number conversion | radix is `BASE`, valid 2..36; digits `0-9` then `a-z`/`A-Z`; Forth-2012 prefixes `#` `$` `%` and `'c'` literals, sign after the prefix |
 | word name length | 1..255 characters |
 | data stack | 1024 cells |
 | return stack | 1024 cells |
 | data space | one contiguous region, 64 KiB |
-| input sources | terminal (line by line), string; nesting depth 8 |
+| input sources | terminal and files line by line (`SOURCE` is the current line), string; nesting depth 8 |
 | `SOURCE-ID` values | 0 = terminal, -1 = string |
 | whitespace | any char <= 0x20 delimits tokens |
 | `environment?` | every query answers unknown (false), as Forth-2012 permits |
