@@ -12,6 +12,10 @@ Like ash left after a fire, the kernel is what remains after everything unnecess
 
 A small C kernel. The rest is Forth.
 
+## Philosophy
+
+It’s just pointer magic in C.
+
 ## Platform
 
 Ash is implemented in C11 and targets POSIX systems.
