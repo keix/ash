@@ -50,8 +50,8 @@ type u. u< unloop until variable while word >number
 None. The Core word set is complete. The text interpreter itself is
 Forth (`interpret` in core.fs); `evaluate` wraps it in `catch` so a
 throw unwinds the source stack one level at a time and rethrows.
-Next: the Forth-2012 test suite under `tests/ans/` gates the
-conformance label claimed in [SPEC.md](SPEC.md).
+The Forth-2012 test suite gated the conformance label; `make test-ans`
+passes, and the label is claimed in [SPEC.md](SPEC.md).
 
 ## Beyond Core
 

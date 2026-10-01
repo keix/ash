@@ -102,9 +102,20 @@ bounds our misunderstandings; it does not certify the system.
 When in doubt, prefer layer 2 — it is the cheapest to write and the
 only one the oracle checks.
 
-## Planned
+## The ANS suite
 
-- `tests/ans/` — the official Forth-2012 test suite, file by file, as
-  its prerequisites land (`abort"`, `[ ]`, pictured numerics, …).
-  Annex F's Core tests are the acceptance gate for the "ANS Forth
-  System" label claimed in [SPEC.md](SPEC.md).
+```sh
+make test-ans
+```
+
+runs the official Forth-2012 test suite's Core tests — `prelimtest.fth`,
+then `core.fr` and `coreplustest.fth` over the suite's own `tester.fr`
+— and fails on any reported error or undefined word. These are the
+acceptance gate for the "ANS Forth System" label claimed in
+[SPEC.md](SPEC.md).
+
+The suite is not vendored. The Makefile expects a checkout of
+`forth-standard-test-suite` beside the Ash tree; point `ANS_SUITE` at
+its `src/` directory if it lives elsewhere. Because of that outside
+dependency, `make test` does not run it: run `make test-ans` whenever
+a change touches Core semantics.
