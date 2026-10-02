@@ -186,7 +186,8 @@ variable leave-link
 
 : [ 0 state ! ; immediate
 : ] -1 state ! ;
-: latest-xt latest cell+ 1+ dup c@ swap 1+ + aligned cell+ ;
+: entry>xt cell+ 1+ dup c@ swap 1+ + aligned cell+ ;
+: latest-xt latest entry>xt ;
 : recurse latest-xt , ; immediate
 
 \ postpone appends compilation semantics: an immediate word's xt is
@@ -364,3 +365,8 @@ variable abort-len
   repeat 2drop ;
 
 : evaluate -1 (push-source) ['] interpret catch (pop-source) throw ;
+
+\ compile every colon word so far to native; the code field is the
+\ only thing that changes, so order does not matter.
+
+: jit-all latest begin ?dup while dup entry>xt jit @ repeat ;

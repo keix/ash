@@ -1,5 +1,5 @@
 CC     ?= cc
-CFLAGS  = -std=c11 -Wall -Wextra -pedantic
+CFLAGS  = -std=c11 -O2 -Wall -Wextra -pedantic
 
 SRC := $(wildcard src/*.c)
 OBJ := $(SRC:src/%.c=build/%.o)
@@ -21,7 +21,12 @@ FORTH_TESTS := tests/stack.fs tests/arithmetic.fs tests/numeric.fs \
 
 TESTOBJ := $(filter-out build/main.o,$(OBJ))
 
-test: test-c test-forth test-session
+test: test-c test-forth test-jit test-session
+
+test-jit: ash
+	@out=$$(./ash tests/jit-on.fs tests/tester.fs $(FORTH_TESTS) tests/summary.fs 2>&1); \
+	echo "$$out" | tail -1; \
+	echo "$$out" | grep -q "all forth tests passed" && echo "jit mode passed"
 
 test-c: all
 	@fail=0; \
@@ -62,4 +67,4 @@ format:
 clean:
 	rm -rf build ash
 
-.PHONY: all test test-c test-forth test-session test-gforth test-ans format clean
+.PHONY: all test test-c test-forth test-jit test-session test-gforth test-ans format clean

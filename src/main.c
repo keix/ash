@@ -92,6 +92,7 @@ main (int argc, char **argv)
   vm.base = 10;
 
   register_prims (&vm);
+  jit_register (&vm);
   load_file (&vm, CORE_FS);
 
   /* gforth-shaped invocation: interpret the named files, then exit */

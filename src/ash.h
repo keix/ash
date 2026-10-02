@@ -64,6 +64,8 @@ struct vm
 
   xt_t xt_lit;  /* compiled by literals in compile state */
   xt_t xt_exit; /* compiled by ; */
+
+  cell_t jit_on; /* ; compiles new definitions to native when set */
 };
 
 /* stack.c */
@@ -100,6 +102,10 @@ void abort_line (vm_t *vm);
 
 /* prims.c */
 void register_prims (vm_t *vm);
+
+/* jit.c */
+void jit_register (vm_t *vm);
+void jit_xt (vm_t *vm, xt_t xt);
 
 /* dict.c */
 void align_here (vm_t *vm);
