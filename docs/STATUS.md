@@ -19,13 +19,16 @@ Forth-2012 suite    prelimtest.fth   0 of 57 failed
                     core.fr          0 failures
                     coreplustest.fth 0 failures
 
-JIT                 every suite above also passes fully jitted
+JIT                 hot words burn by default: a docol-side counter
+                    (outside the dictionary) compiles a word at its
+                    512th call. jit-on = eager at ; · jit-off = off.
+                    Every suite passes in all three modes.
                     fib(40), -O2, one session, interleaved,
                     cpu-pinned, medians of 3:
-                    threaded 7.94s · template jit 6.53s ·
-                    jit + primitive inlining 1.56s (5.1x)
-                    references, same session: python 3.14 7.05s ·
-                    gforth 1.10s (1.42x ahead of ash)
+                    off 8.16s · hot/default 1.57s (5.2x) ·
+                    eager 1.58s
+                    prior session references: python 3.14 7.05s ·
+                    gforth 1.10s
 ```
 
 The dot moved: `.` was a C primitive and is now Forth over pictured

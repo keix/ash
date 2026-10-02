@@ -677,7 +677,7 @@ prim_semi (vm_t *vm, xt_t xt)
   comma (vm, (cell_t)vm->xt_exit);
   vm->latest->flags &= ~F_HIDDEN;
   vm->state = 0;
-  if (vm->jit_on)
+  if (vm->jit_on > 0)
     jit_xt (vm, entry_xt (vm->latest));
 }
 
