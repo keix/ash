@@ -20,10 +20,12 @@ Forth-2012 suite    prelimtest.fth   0 of 57 failed
                     coreplustest.fth 0 failures
 
 JIT                 every suite above also passes fully jitted
-                    fib(40), -O2, cpu-pinned medians of 3:
-                    threaded 7.85s · template jit 6.41s ·
-                    jit + primitive inlining 1.61s (4.9x)
-                    references: python 3.14 6.95s · gforth 1.09s
+                    fib(40), -O2, one session, interleaved,
+                    cpu-pinned, medians of 3:
+                    threaded 7.94s · template jit 6.53s ·
+                    jit + primitive inlining 1.56s (5.1x)
+                    references, same session: python 3.14 7.05s ·
+                    gforth 1.10s (1.42x ahead of ash)
 ```
 
 The dot moved: `.` was a C primitive and is now Forth over pictured
