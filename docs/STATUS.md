@@ -18,6 +18,11 @@ beyond Core         59  (42 Forth, 17 C)
 Forth-2012 suite    prelimtest.fth   0 of 57 failed
                     core.fr          0 failures
                     coreplustest.fth 0 failures
+
+JIT (template)      every suite above also passes fully jitted
+                    fib(40), -O2, cpu-pinned medians of 3:
+                    threaded 7.85s · jit 6.41s (1.22x) ·
+                    python 3.14: 6.95s
 ```
 
 The dot moved: `.` was a C primitive and is now Forth over pictured
@@ -73,7 +78,8 @@ C:      \ parse  (Core Ext)   bye  (Tools Ext)
         parse-name                (Forth-2012)
         sp@ sp! rp@ rp!           (common practice, not ANS)
         latest lit branch 0branch (does>) (s") (abort)
-        (push-source) (pop-source)  (Ash internals)
+        (push-source) (pop-source) jit jit-on jit-off
+                                  (Ash internals)
 ```
 
 ## Deviations and spec decisions

@@ -71,6 +71,8 @@ documentation the label obliges.
   with a `_Static_assert`.
 - The kernel itself is endianness-neutral; some tests poke counted
   strings as little-endian cells.
+- The JIT arena is W^X: its pages are writable during compilation and
+  executable otherwise, never both.
 
 ## Environmental restrictions
 
