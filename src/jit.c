@@ -179,6 +179,349 @@ in_arena (code_t code)
   return c >= a && c < a + ARENA_BYTES;
 }
 
+/* ---- inlined primitives: immutable C prims expanded to native ---- */
+
+/* rcx = dsp; rax = top */
+static void
+top_rax (void)
+{
+  ld_rcx (OFF_DSP);
+  e8 (0x48);
+  e8 (0x8B);
+  e8 (0x01);
+}
+
+static void
+i_dup (void)
+{
+  top_rax ();
+  e8 (0x48);
+  e8 (0x8D);
+  e8 (0x49);
+  e8 (0xF8); /* lea rcx, [rcx-8] */
+  e8 (0x48);
+  e8 (0x89);
+  e8 (0x01); /* mov [rcx], rax */
+  st_rcx (OFF_DSP);
+}
+
+static void
+i_drop (void)
+{
+  ld_rcx (OFF_DSP);
+  e8 (0x48);
+  e8 (0x8D);
+  e8 (0x49);
+  e8 (0x08);
+  st_rcx (OFF_DSP);
+}
+
+static void
+i_swap (void)
+{
+  top_rax ();
+  e8 (0x48);
+  e8 (0x8B);
+  e8 (0x51);
+  e8 (0x08); /* mov rdx, [rcx+8] */
+  e8 (0x48);
+  e8 (0x89);
+  e8 (0x11); /* mov [rcx], rdx */
+  e8 (0x48);
+  e8 (0x89);
+  e8 (0x41);
+  e8 (0x08); /* mov [rcx+8], rax */
+}
+
+static void
+i_over (void)
+{
+  ld_rcx (OFF_DSP);
+  e8 (0x48);
+  e8 (0x8B);
+  e8 (0x41);
+  e8 (0x08); /* mov rax, [rcx+8] */
+  e8 (0x48);
+  e8 (0x8D);
+  e8 (0x49);
+  e8 (0xF8);
+  e8 (0x48);
+  e8 (0x89);
+  e8 (0x01);
+  st_rcx (OFF_DSP);
+}
+
+static void
+i_rot (void)
+{
+  top_rax (); /* rax = c */
+  e8 (0x48);
+  e8 (0x8B);
+  e8 (0x51);
+  e8 (0x08); /* rdx = b */
+  e8 (0x48);
+  e8 (0x8B);
+  e8 (0x71);
+  e8 (0x10); /* rsi = a */
+  e8 (0x48);
+  e8 (0x89);
+  e8 (0x31); /* [rcx]   = a */
+  e8 (0x48);
+  e8 (0x89);
+  e8 (0x41);
+  e8 (0x08); /* [rcx+8] = c */
+  e8 (0x48);
+  e8 (0x89);
+  e8 (0x51);
+  e8 (0x10); /* [rcx+16]= b */
+}
+
+/* pop top into rax, leave rcx on the new top, dsp stored */
+static void
+pop_adjust (void)
+{
+  top_rax ();
+  e8 (0x48);
+  e8 (0x8D);
+  e8 (0x49);
+  e8 (0x08);
+  st_rcx (OFF_DSP);
+}
+
+/* second OP= top, for add/sub/and/or/xor */
+static void
+binop (uint8_t op)
+{
+  pop_adjust ();
+  e8 (0x48);
+  e8 (op);
+  e8 (0x01); /* op [rcx], rax */
+}
+
+static void
+i_add (void)
+{
+  binop (0x01);
+}
+
+static void
+i_sub (void)
+{
+  binop (0x29);
+}
+
+static void
+i_and (void)
+{
+  binop (0x21);
+}
+
+static void
+i_or (void)
+{
+  binop (0x09);
+}
+
+static void
+i_xor (void)
+{
+  binop (0x31);
+}
+
+static void
+i_mul (void)
+{
+  pop_adjust ();
+  e8 (0x48);
+  e8 (0x0F);
+  e8 (0xAF);
+  e8 (0x01); /* imul rax, [rcx] */
+  e8 (0x48);
+  e8 (0x89);
+  e8 (0x01); /* mov [rcx], rax */
+}
+
+static void
+i_invert (void)
+{
+  ld_rcx (OFF_DSP);
+  e8 (0x48);
+  e8 (0xF7);
+  e8 (0x11); /* not qword [rcx] */
+}
+
+/* compare second with top, leave a full flag: setcc al; -al */
+static void
+cmpop (uint8_t setcc)
+{
+  pop_adjust ();
+  e8 (0x48);
+  e8 (0x39);
+  e8 (0x01); /* cmp [rcx], rax */
+  e8 (0x0F);
+  e8 (setcc);
+  e8 (0xC0); /* setcc al */
+  e8 (0x48);
+  e8 (0x0F);
+  e8 (0xB6);
+  e8 (0xC0); /* movzx rax, al */
+  e8 (0x48);
+  e8 (0xF7);
+  e8 (0xD8); /* neg rax */
+  e8 (0x48);
+  e8 (0x89);
+  e8 (0x01); /* mov [rcx], rax */
+}
+
+static void
+i_lt (void)
+{
+  cmpop (0x9C);
+}
+
+static void
+i_gt (void)
+{
+  cmpop (0x9F);
+}
+
+static void
+i_eq (void)
+{
+  cmpop (0x94);
+}
+
+static void
+i_zeq (void)
+{
+  ld_rcx (OFF_DSP);
+  e8 (0x48);
+  e8 (0x83);
+  e8 (0x39);
+  e8 (0x00); /* cmp qword [rcx], 0 */
+  e8 (0x0F);
+  e8 (0x94);
+  e8 (0xC0); /* sete al */
+  e8 (0x48);
+  e8 (0x0F);
+  e8 (0xB6);
+  e8 (0xC0);
+  e8 (0x48);
+  e8 (0xF7);
+  e8 (0xD8);
+  e8 (0x48);
+  e8 (0x89);
+  e8 (0x01);
+}
+
+static void
+i_fetch (void)
+{
+  top_rax ();
+  e8 (0x48);
+  e8 (0x8B);
+  e8 (0x00); /* mov rax, [rax] */
+  e8 (0x48);
+  e8 (0x89);
+  e8 (0x01); /* mov [rcx], rax */
+}
+
+static void
+i_store (void)
+{
+  top_rax (); /* rax = addr */
+  e8 (0x48);
+  e8 (0x8B);
+  e8 (0x51);
+  e8 (0x08); /* rdx = value */
+  e8 (0x48);
+  e8 (0x89);
+  e8 (0x10); /* mov [rax], rdx */
+  e8 (0x48);
+  e8 (0x8D);
+  e8 (0x49);
+  e8 (0x10); /* rcx += 16 */
+  st_rcx (OFF_DSP);
+}
+
+static void
+i_tor (void)
+{
+  pop_adjust ();
+  ld_rcx (OFF_RSP);
+  e8 (0x48);
+  e8 (0x8D);
+  e8 (0x49);
+  e8 (0xF8);
+  e8 (0x48);
+  e8 (0x89);
+  e8 (0x01);
+  st_rcx (OFF_RSP);
+}
+
+static void
+i_fromr (void)
+{
+  ld_rcx (OFF_RSP);
+  e8 (0x48);
+  e8 (0x8B);
+  e8 (0x01);
+  e8 (0x48);
+  e8 (0x8D);
+  e8 (0x49);
+  e8 (0x08);
+  st_rcx (OFF_RSP);
+  ld_rcx (OFF_DSP);
+  e8 (0x48);
+  e8 (0x8D);
+  e8 (0x49);
+  e8 (0xF8);
+  e8 (0x48);
+  e8 (0x89);
+  e8 (0x01);
+  st_rcx (OFF_DSP);
+}
+
+static void
+i_rfetch (void)
+{
+  ld_rcx (OFF_RSP);
+  e8 (0x48);
+  e8 (0x8B);
+  e8 (0x01);
+  ld_rcx (OFF_DSP);
+  e8 (0x48);
+  e8 (0x8D);
+  e8 (0x49);
+  e8 (0xF8);
+  e8 (0x48);
+  e8 (0x89);
+  e8 (0x01);
+  st_rcx (OFF_DSP);
+}
+
+typedef void (*inline_emit_t) (void);
+
+typedef struct
+{
+  xt_t xt;
+  inline_emit_t emit;
+} inline_entry_t;
+
+static inline_entry_t inliners[32];
+static size_t ninline;
+
+static inline_emit_t
+find_inliner (cell_t w)
+{
+  size_t k;
+
+  for (k = 0; k < ninline; k++)
+    if ((cell_t)inliners[k].xt == w)
+      return inliners[k].emit;
+  return NULL;
+}
+
 /* transfer to any word: plant a one-cell trampoline thread as the
    continuation, restore the C stack, and tail-jump through the
    callee's code field (loaded at run time, so a callee JITted later
@@ -361,10 +704,14 @@ jit_xt (vm_t *vm, xt_t xt)
           /* transfer to anything that owns control flow: colon and
              native words, create words (does> may repatch them), and
              the ip-manipulating primitives. Direct calls are only for
-             immutable C primitives. */
-          if (code == docol || code == dodoes || code == docreate
-              || in_arena (code) || (xt_t)w == x_execute || (xt_t)w == x_quit
-              || (xt_t)w == x_abort)
+             immutable C primitives; the hottest of those inline. */
+          inline_emit_t inl = find_inliner (w);
+
+          if (inl)
+            inl ();
+          else if (code == docol || code == dodoes || code == docreate
+                   || in_arena (code) || (xt_t)w == x_execute
+                   || (xt_t)w == x_quit || (xt_t)w == x_abort)
             emit_transfer ((xt_t)w);
           else
             emit_call ((xt_t)w);
@@ -428,6 +775,19 @@ xt_of (vm_t *vm, const char *name)
   return w ? entry_xt (w) : NULL;
 }
 
+static void
+reg_inline (vm_t *vm, const char *name, inline_emit_t emit)
+{
+  xt_t x = xt_of (vm, name);
+
+  if (x && ninline < sizeof (inliners) / sizeof (inliners[0]))
+    {
+      inliners[ninline].xt = x;
+      inliners[ninline].emit = emit;
+      ninline++;
+    }
+}
+
 void
 jit_register (vm_t *vm)
 {
@@ -448,6 +808,28 @@ jit_register (vm_t *vm)
   x_quit = xt_of (vm, "quit");
   x_abort = xt_of (vm, "(abort)");
   x_does = xt_of (vm, "(does>)");
+
+  reg_inline (vm, "dup", i_dup);
+  reg_inline (vm, "drop", i_drop);
+  reg_inline (vm, "swap", i_swap);
+  reg_inline (vm, "over", i_over);
+  reg_inline (vm, "rot", i_rot);
+  reg_inline (vm, "+", i_add);
+  reg_inline (vm, "-", i_sub);
+  reg_inline (vm, "*", i_mul);
+  reg_inline (vm, "and", i_and);
+  reg_inline (vm, "or", i_or);
+  reg_inline (vm, "xor", i_xor);
+  reg_inline (vm, "invert", i_invert);
+  reg_inline (vm, "=", i_eq);
+  reg_inline (vm, "<", i_lt);
+  reg_inline (vm, ">", i_gt);
+  reg_inline (vm, "0=", i_zeq);
+  reg_inline (vm, "@", i_fetch);
+  reg_inline (vm, "!", i_store);
+  reg_inline (vm, ">r", i_tor);
+  reg_inline (vm, "r>", i_fromr);
+  reg_inline (vm, "r@", i_rfetch);
 
   defprim (vm, "jit", prim_jit);
   defprim (vm, "jit-on", prim_jit_on);
