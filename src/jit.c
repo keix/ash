@@ -131,7 +131,10 @@ rpush_ip (void)
   st_rcx (OFF_RSP);
 }
 
-/* ip = rpop; pop rbx; ret -- back to the one dispatch loop */
+/* ip = rpop; pop rbx; ret -- back to the one dispatch loop. A direct
+   jump into a native continuation was tried and measured slower: the
+   ret/call pair is predicted by the return stack buffer, an indirect
+   jmp is not. */
 static void
 emit_exit (void)
 {
@@ -522,6 +525,57 @@ find_inliner (cell_t w)
   return NULL;
 }
 
+/* a colon word short and pure enough to inline whole: literals and
+   inlinable primitives only, exit at the end, and no return-stack
+   ops -- inlined, those would see the caller's frame. */
+static int
+inlinable_colon (cell_t *b, size_t *n)
+{
+  size_t i = 0;
+
+  while (i < 12)
+    {
+      cell_t w = b[i];
+      inline_emit_t f;
+
+      if ((xt_t)w == x_exit)
+        {
+          *n = i;
+          return 1;
+        }
+      if ((xt_t)w == x_lit)
+        {
+          i += 2;
+          continue;
+        }
+      f = find_inliner (w);
+      if (!f || f == i_tor || f == i_fromr || f == i_rfetch)
+        return 0;
+      i += 1;
+    }
+  return 0;
+}
+
+static void
+emit_inline_colon (cell_t *b, size_t n)
+{
+  size_t i = 0;
+
+  while (i < n)
+    {
+      if ((xt_t)b[i] == x_lit)
+        {
+          push_const ((uint64_t)b[i + 1]);
+          i += 2;
+        }
+      else
+        {
+          find_inliner (b[i]) ();
+          i += 1;
+        }
+    }
+}
+
 /* transfer to any word: plant a one-cell trampoline thread as the
    continuation, restore the C stack, and tail-jump through the
    callee's code field (loaded at run time, so a callee JITted later
@@ -631,7 +685,7 @@ jit_xt (vm_t *vm, xt_t xt)
         return;
     }
 
-  if (apos + 64 * end + 256 > ARENA_BYTES)
+  if (apos + 512 * end + 512 > ARENA_BYTES)
     return; /* arena full: stay threaded */
 
   off = calloc (end + 1, sizeof (size_t));
@@ -706,9 +760,12 @@ jit_xt (vm_t *vm, xt_t xt)
              the ip-manipulating primitives. Direct calls are only for
              immutable C primitives; the hottest of those inline. */
           inline_emit_t inl = find_inliner (w);
+          size_t ncells;
 
           if (inl)
             inl ();
+          else if (code == docol && inlinable_colon ((cell_t *)w + 1, &ncells))
+            emit_inline_colon ((cell_t *)w + 1, ncells);
           else if (code == docol || code == dodoes || code == docreate
                    || in_arena (code) || (xt_t)w == x_execute
                    || (xt_t)w == x_quit || (xt_t)w == x_abort)
@@ -737,6 +794,40 @@ jit_xt (vm_t *vm, xt_t xt)
 
 /* ---- words ---- */
 
+/* hotness: optimization policy, outside the dictionary entry. A
+   direct-mapped table counts docol entries per xt; at the threshold
+   the word burns. A compiled word never reaches docol again, so its
+   counter stops by itself. */
+
+enum
+{
+  HOT_SLOTS = 1024,
+  HOT_THRESHOLD = 512
+};
+
+static struct
+{
+  xt_t xt;
+  uint32_t n;
+} hot[HOT_SLOTS];
+
+void
+jit_count (vm_t *vm, xt_t xt)
+{
+  size_t i = ((uintptr_t)xt >> 3) & (HOT_SLOTS - 1);
+
+  if (vm->jit_on < 0 || !arena)
+    return;
+  if (hot[i].xt != xt)
+    {
+      hot[i].xt = xt;
+      hot[i].n = 1;
+      return;
+    }
+  if (++hot[i].n == HOT_THRESHOLD)
+    jit_xt (vm, xt);
+}
+
 static void
 prim_jit (vm_t *vm, xt_t xt)
 {
@@ -748,14 +839,14 @@ static void
 prim_jit_on (vm_t *vm, xt_t xt)
 {
   (void)xt;
-  vm->jit_on = -1;
+  vm->jit_on = 1;
 }
 
 static void
 prim_jit_off (vm_t *vm, xt_t xt)
 {
   (void)xt;
-  vm->jit_on = 0;
+  vm->jit_on = -1;
 }
 
 static xt_t

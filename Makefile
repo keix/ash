@@ -21,7 +21,12 @@ FORTH_TESTS := tests/stack.fs tests/arithmetic.fs tests/numeric.fs \
 
 TESTOBJ := $(filter-out build/main.o,$(OBJ))
 
-test: test-c test-forth test-jit test-session
+test: test-c test-forth test-jit test-threaded test-session
+
+test-threaded: ash
+	@out=$$(./ash tests/jit-off.fs tests/tester.fs $(FORTH_TESTS) tests/summary.fs 2>&1); \
+	echo "$$out" | tail -1; \
+	echo "$$out" | grep -q "all forth tests passed" && echo "threaded mode passed"
 
 test-jit: ash
 	@out=$$(./ash tests/jit-on.fs tests/tester.fs $(FORTH_TESTS) tests/summary.fs 2>&1); \
@@ -67,4 +72,4 @@ format:
 clean:
 	rm -rf build ash
 
-.PHONY: all test test-c test-forth test-jit test-session test-gforth test-ans format clean
+.PHONY: all test test-c test-forth test-jit test-threaded test-session test-gforth test-ans format clean

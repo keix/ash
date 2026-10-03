@@ -9,6 +9,7 @@
 void
 docol (vm_t *vm, xt_t xt)
 {
+  jit_count (vm, xt);
   rpush (vm, (cell_t)vm->ip);
   vm->ip = (xt_t *)(xt + 1);
 }
