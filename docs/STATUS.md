@@ -25,10 +25,10 @@ JIT                 hot words burn by default: a docol-side counter
                     Every suite passes in all three modes.
                     fib(40), -O2, one session, interleaved,
                     cpu-pinned, medians of 3:
-                    off 8.16s · hot/default 1.57s (5.2x) ·
-                    eager 1.58s
-                    prior session references: python 3.14 7.05s ·
-                    gforth 1.10s
+                    primitive inlining 1.53s ·
+                    + segment stack cache 1.21s (6.6x over
+                    jit-off's 8.16s) · gforth same session: 1.10s
+                    prior sessions: python 3.14 7.05s
 ```
 
 The dot moved: `.` was a C primitive and is now Forth over pictured
