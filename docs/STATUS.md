@@ -19,16 +19,26 @@ Forth-2012 suite    prelimtest.fth   0 of 57 failed
                     core.fr          0 failures
                     coreplustest.fth 0 failures
 
-JIT                 hot words burn by default: a docol-side counter
-                    (outside the dictionary) compiles a word at its
-                    512th call. jit-on = eager at ; · jit-off = off.
+JIT                 hot words burn by default: counters outside the
+                    dictionary (2-way set-associative, keyed by xt
+                    for calls and by target for taken backward
+                    branches) compile a word at its 512th call or
+                    512th loop iteration; a loop burns its word
+                    mid-call and resumes natively at the branch
+                    target. jit-on = eager at ; · jit-off = off.
                     Every suite passes in all three modes.
-                    fib(40), -O2, one session, interleaved,
-                    cpu-pinned, medians of 3:
-                    primitive inlining 1.53s ·
-                    + segment stack cache 1.21s (6.6x over
-                    jit-off's 8.16s) · gforth same session: 1.10s
-                    prior sessions: python 3.14 7.05s
+                    The segment caches keep the top four cells in
+                    registers or as constants (the top also as
+                    condition codes) and rsp in a register: stack
+                    shuffles are renames, literals immediates, and
+                    a compare feeds its branch.
+                    -O2, one session, cpu-pinned, medians of 3,
+                    default mode · gforth / gforth-fast same session:
+                    fib(40)  0.93s (jit-off 8.16s) · 1.08s / 0.50s
+                    loop     0.015s (was 1.02s before loops counted
+                             as hot) · 0.029s / 0.016s
+                    sieve    0.034s (was 0.89s) · 0.12s / 0.034s
+                    prior sessions: python 3.14 7.05s on fib
 ```
 
 The dot moved: `.` was a C primitive and is now Forth over pictured

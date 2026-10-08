@@ -107,6 +107,7 @@ void register_prims (vm_t *vm);
 void jit_register (vm_t *vm);
 void jit_xt (vm_t *vm, xt_t xt);
 void jit_count (vm_t *vm, xt_t xt);
+int jit_backedge (vm_t *vm, xt_t *target);
 
 /* dict.c */
 void align_here (vm_t *vm);
