@@ -69,37 +69,82 @@ st_rcx (uint32_t off)
   e32 (off);
 }
 
-/* pop the data stack into rax */
+/* ---- segment stack cache ----
+   Within a straight-line segment, rcx holds vm->dsp and a
+   compile-time delta tracks pushes and pops; values always live in
+   memory, only the pointer round-trips are elided. sync_dsp()
+   materializes the pointer and kills the cache at every control-flow
+   boundary, so the contract's "stacks fully materialized where
+   control may leave" holds by construction. */
+
+static int dsp_live;
+static long dsp_delta;
+
+/* mov reg, [rcx+cells*8] / mov [rcx+cells*8], reg
+   reg modrm: rax 0x81, rdx 0x91, rsi 0xB1 */
+static void
+mem_ld (uint8_t reg, long cells)
+{
+  e8 (0x48);
+  e8 (0x8B);
+  e8 (reg);
+  e32 ((uint32_t)(int32_t)(cells * 8));
+}
+
+static void
+mem_st (uint8_t reg, long cells)
+{
+  e8 (0x48);
+  e8 (0x89);
+  e8 (reg);
+  e32 ((uint32_t)(int32_t)(cells * 8));
+}
+
+static void
+ensure_dsp (void)
+{
+  if (!dsp_live)
+    {
+      ld_rcx (OFF_DSP);
+      dsp_live = 1;
+      dsp_delta = 0;
+    }
+}
+
+static void
+sync_dsp (void)
+{
+  if (dsp_live && dsp_delta != 0)
+    {
+      e8 (0x48);
+      e8 (0x8D);
+      e8 (0x89);
+      e32 ((uint32_t)(int32_t)(dsp_delta * 8)); /* lea rcx,[rcx+d] */
+      st_rcx (OFF_DSP);
+    }
+  dsp_live = 0;
+  dsp_delta = 0;
+}
+
+/* rax = top, consumed from the cache's view */
 static void
 pop_rax (void)
 {
-  ld_rcx (OFF_DSP);
-  e8 (0x48);
-  e8 (0x8B);
-  e8 (0x01); /* mov rax, [rcx] */
-  e8 (0x48);
-  e8 (0x8D);
-  e8 (0x49);
-  e8 (0x08); /* lea rcx, [rcx+8] */
-  st_rcx (OFF_DSP);
+  ensure_dsp ();
+  mem_ld (0x81, dsp_delta);
+  dsp_delta += 1;
 }
 
 /* push a constant onto the data stack */
 static void
 push_const (uint64_t n)
 {
+  ensure_dsp ();
   e8 (0x48);
   e8 (0xB8);
   e64 (n); /* mov rax, n */
-  ld_rcx (OFF_DSP);
-  e8 (0x48);
-  e8 (0x8D);
-  e8 (0x49);
-  e8 (0xF8); /* lea rcx, [rcx-8] */
-  e8 (0x48);
-  e8 (0x89);
-  e8 (0x01); /* mov [rcx], rax */
-  st_rcx (OFF_DSP);
+  dsp_delta -= 1;
+  mem_st (0x81, dsp_delta);
 }
 
 /* push rbx; mov rbx, rdi -- entry and every resume point */
@@ -138,6 +183,7 @@ rpush_ip (void)
 static void
 emit_exit (void)
 {
+  sync_dsp ();
   ld_rcx (OFF_RSP);
   e8 (0x48);
   e8 (0x8B);
@@ -160,6 +206,7 @@ emit_exit (void)
 static void
 emit_call (xt_t w)
 {
+  sync_dsp ();
   e8 (0x48);
   e8 (0x89);
   e8 (0xDF); /* mov rdi, rbx */
@@ -182,123 +229,65 @@ in_arena (code_t code)
   return c >= a && c < a + ARENA_BYTES;
 }
 
-/* ---- inlined primitives: immutable C prims expanded to native ---- */
-
-/* rcx = dsp; rax = top */
-static void
-top_rax (void)
-{
-  ld_rcx (OFF_DSP);
-  e8 (0x48);
-  e8 (0x8B);
-  e8 (0x01);
-}
+/* ---- inlined primitives: immutable C prims expanded to native,
+   all through the segment stack cache ---- */
 
 static void
 i_dup (void)
 {
-  top_rax ();
-  e8 (0x48);
-  e8 (0x8D);
-  e8 (0x49);
-  e8 (0xF8); /* lea rcx, [rcx-8] */
-  e8 (0x48);
-  e8 (0x89);
-  e8 (0x01); /* mov [rcx], rax */
-  st_rcx (OFF_DSP);
+  ensure_dsp ();
+  mem_ld (0x81, dsp_delta);
+  dsp_delta -= 1;
+  mem_st (0x81, dsp_delta);
 }
 
 static void
 i_drop (void)
 {
-  ld_rcx (OFF_DSP);
-  e8 (0x48);
-  e8 (0x8D);
-  e8 (0x49);
-  e8 (0x08);
-  st_rcx (OFF_DSP);
+  ensure_dsp ();
+  dsp_delta += 1; /* bookkeeping only: no instruction */
 }
 
 static void
 i_swap (void)
 {
-  top_rax ();
-  e8 (0x48);
-  e8 (0x8B);
-  e8 (0x51);
-  e8 (0x08); /* mov rdx, [rcx+8] */
-  e8 (0x48);
-  e8 (0x89);
-  e8 (0x11); /* mov [rcx], rdx */
-  e8 (0x48);
-  e8 (0x89);
-  e8 (0x41);
-  e8 (0x08); /* mov [rcx+8], rax */
+  ensure_dsp ();
+  mem_ld (0x81, dsp_delta);
+  mem_ld (0x91, dsp_delta + 1);
+  mem_st (0x91, dsp_delta);
+  mem_st (0x81, dsp_delta + 1);
 }
 
 static void
 i_over (void)
 {
-  ld_rcx (OFF_DSP);
-  e8 (0x48);
-  e8 (0x8B);
-  e8 (0x41);
-  e8 (0x08); /* mov rax, [rcx+8] */
-  e8 (0x48);
-  e8 (0x8D);
-  e8 (0x49);
-  e8 (0xF8);
-  e8 (0x48);
-  e8 (0x89);
-  e8 (0x01);
-  st_rcx (OFF_DSP);
+  ensure_dsp ();
+  mem_ld (0x81, dsp_delta + 1);
+  dsp_delta -= 1;
+  mem_st (0x81, dsp_delta);
 }
 
 static void
 i_rot (void)
 {
-  top_rax (); /* rax = c */
-  e8 (0x48);
-  e8 (0x8B);
-  e8 (0x51);
-  e8 (0x08); /* rdx = b */
-  e8 (0x48);
-  e8 (0x8B);
-  e8 (0x71);
-  e8 (0x10); /* rsi = a */
-  e8 (0x48);
-  e8 (0x89);
-  e8 (0x31); /* [rcx]   = a */
-  e8 (0x48);
-  e8 (0x89);
-  e8 (0x41);
-  e8 (0x08); /* [rcx+8] = c */
-  e8 (0x48);
-  e8 (0x89);
-  e8 (0x51);
-  e8 (0x10); /* [rcx+16]= b */
-}
-
-/* pop top into rax, leave rcx on the new top, dsp stored */
-static void
-pop_adjust (void)
-{
-  top_rax ();
-  e8 (0x48);
-  e8 (0x8D);
-  e8 (0x49);
-  e8 (0x08);
-  st_rcx (OFF_DSP);
+  ensure_dsp ();
+  mem_ld (0x81, dsp_delta);     /* c */
+  mem_ld (0x91, dsp_delta + 1); /* b */
+  mem_ld (0xB1, dsp_delta + 2); /* a */
+  mem_st (0xB1, dsp_delta);
+  mem_st (0x81, dsp_delta + 1);
+  mem_st (0x91, dsp_delta + 2);
 }
 
 /* second OP= top, for add/sub/and/or/xor */
 static void
 binop (uint8_t op)
 {
-  pop_adjust ();
+  pop_rax ();
   e8 (0x48);
   e8 (op);
-  e8 (0x01); /* op [rcx], rax */
+  e8 (0x81); /* op [rcx+delta*8], rax */
+  e32 ((uint32_t)(int32_t)(dsp_delta * 8));
 }
 
 static void
@@ -334,33 +323,34 @@ i_xor (void)
 static void
 i_mul (void)
 {
-  pop_adjust ();
+  pop_rax ();
   e8 (0x48);
   e8 (0x0F);
   e8 (0xAF);
-  e8 (0x01); /* imul rax, [rcx] */
-  e8 (0x48);
-  e8 (0x89);
-  e8 (0x01); /* mov [rcx], rax */
+  e8 (0x81); /* imul rax, [rcx+delta*8] */
+  e32 ((uint32_t)(int32_t)(dsp_delta * 8));
+  mem_st (0x81, dsp_delta);
 }
 
 static void
 i_invert (void)
 {
-  ld_rcx (OFF_DSP);
+  ensure_dsp ();
   e8 (0x48);
   e8 (0xF7);
-  e8 (0x11); /* not qword [rcx] */
+  e8 (0x91); /* not qword [rcx+delta*8] */
+  e32 ((uint32_t)(int32_t)(dsp_delta * 8));
 }
 
 /* compare second with top, leave a full flag: setcc al; -al */
 static void
 cmpop (uint8_t setcc)
 {
-  pop_adjust ();
+  pop_rax ();
   e8 (0x48);
   e8 (0x39);
-  e8 (0x01); /* cmp [rcx], rax */
+  e8 (0x81); /* cmp [rcx+delta*8], rax */
+  e32 ((uint32_t)(int32_t)(dsp_delta * 8));
   e8 (0x0F);
   e8 (setcc);
   e8 (0xC0); /* setcc al */
@@ -371,9 +361,7 @@ cmpop (uint8_t setcc)
   e8 (0x48);
   e8 (0xF7);
   e8 (0xD8); /* neg rax */
-  e8 (0x48);
-  e8 (0x89);
-  e8 (0x01); /* mov [rcx], rax */
+  mem_st (0x81, dsp_delta);
 }
 
 static void
@@ -397,11 +385,12 @@ i_eq (void)
 static void
 i_zeq (void)
 {
-  ld_rcx (OFF_DSP);
+  ensure_dsp ();
   e8 (0x48);
   e8 (0x83);
-  e8 (0x39);
-  e8 (0x00); /* cmp qword [rcx], 0 */
+  e8 (0xB9); /* cmp qword [rcx+delta*8], 0 */
+  e32 ((uint32_t)(int32_t)(dsp_delta * 8));
+  e8 (0x00);
   e8 (0x0F);
   e8 (0x94);
   e8 (0xC0); /* sete al */
@@ -412,95 +401,89 @@ i_zeq (void)
   e8 (0x48);
   e8 (0xF7);
   e8 (0xD8);
-  e8 (0x48);
-  e8 (0x89);
-  e8 (0x01);
+  mem_st (0x81, dsp_delta);
 }
 
 static void
 i_fetch (void)
 {
-  top_rax ();
+  ensure_dsp ();
+  mem_ld (0x81, dsp_delta);
   e8 (0x48);
   e8 (0x8B);
   e8 (0x00); /* mov rax, [rax] */
-  e8 (0x48);
-  e8 (0x89);
-  e8 (0x01); /* mov [rcx], rax */
+  mem_st (0x81, dsp_delta);
 }
 
 static void
 i_store (void)
 {
-  top_rax (); /* rax = addr */
-  e8 (0x48);
-  e8 (0x8B);
-  e8 (0x51);
-  e8 (0x08); /* rdx = value */
+  ensure_dsp ();
+  mem_ld (0x81, dsp_delta);     /* rax = addr */
+  mem_ld (0x91, dsp_delta + 1); /* rdx = value */
   e8 (0x48);
   e8 (0x89);
   e8 (0x10); /* mov [rax], rdx */
-  e8 (0x48);
-  e8 (0x8D);
-  e8 (0x49);
-  e8 (0x10); /* rcx += 16 */
-  st_rcx (OFF_DSP);
+  dsp_delta += 2;
 }
 
 static void
 i_tor (void)
 {
-  pop_adjust ();
-  ld_rcx (OFF_RSP);
+  pop_rax ();
+  e8 (0x48);
+  e8 (0x8B);
+  e8 (0x93);
+  e32 (OFF_RSP); /* mov rdx, [rbx+rsp] */
   e8 (0x48);
   e8 (0x8D);
-  e8 (0x49);
-  e8 (0xF8);
+  e8 (0x52);
+  e8 (0xF8); /* lea rdx, [rdx-8] */
   e8 (0x48);
   e8 (0x89);
-  e8 (0x01);
-  st_rcx (OFF_RSP);
+  e8 (0x02); /* mov [rdx], rax */
+  e8 (0x48);
+  e8 (0x89);
+  e8 (0x93);
+  e32 (OFF_RSP);
 }
 
 static void
 i_fromr (void)
 {
-  ld_rcx (OFF_RSP);
   e8 (0x48);
   e8 (0x8B);
-  e8 (0x01);
+  e8 (0x93);
+  e32 (OFF_RSP); /* mov rdx, [rbx+rsp] */
+  e8 (0x48);
+  e8 (0x8B);
+  e8 (0x02); /* mov rax, [rdx] */
   e8 (0x48);
   e8 (0x8D);
-  e8 (0x49);
-  e8 (0x08);
-  st_rcx (OFF_RSP);
-  ld_rcx (OFF_DSP);
-  e8 (0x48);
-  e8 (0x8D);
-  e8 (0x49);
-  e8 (0xF8);
+  e8 (0x52);
+  e8 (0x08); /* lea rdx, [rdx+8] */
   e8 (0x48);
   e8 (0x89);
-  e8 (0x01);
-  st_rcx (OFF_DSP);
+  e8 (0x93);
+  e32 (OFF_RSP);
+  ensure_dsp ();
+  dsp_delta -= 1;
+  mem_st (0x81, dsp_delta);
 }
 
 static void
 i_rfetch (void)
 {
-  ld_rcx (OFF_RSP);
   e8 (0x48);
   e8 (0x8B);
-  e8 (0x01);
-  ld_rcx (OFF_DSP);
+  e8 (0x93);
+  e32 (OFF_RSP); /* mov rdx, [rbx+rsp] */
   e8 (0x48);
-  e8 (0x8D);
-  e8 (0x49);
-  e8 (0xF8);
-  e8 (0x48);
-  e8 (0x89);
-  e8 (0x01);
-  st_rcx (OFF_DSP);
+  e8 (0x8B);
+  e8 (0x02); /* mov rax, [rdx] */
+  ensure_dsp ();
+  dsp_delta -= 1;
+  mem_st (0x81, dsp_delta);
 }
 
 typedef void (*inline_emit_t) (void);
@@ -587,6 +570,7 @@ emit_transfer (xt_t w)
 {
   size_t fix_c1;
 
+  sync_dsp ();
   e8 (0x48);
   e8 (0xB8);
   fix_c1 = apos;
@@ -645,6 +629,7 @@ jit_xt (vm_t *vm, xt_t xt)
   size_t end = 0, maxt = 0, i;
   size_t *off;
   patch_t *patches;
+  uint8_t *is_target;
   size_t npatch = 0;
   size_t fn;
 
@@ -690,11 +675,34 @@ jit_xt (vm_t *vm, xt_t xt)
 
   off = calloc (end + 1, sizeof (size_t));
   patches = calloc (end + 1, sizeof (patch_t));
-  if (!off || !patches)
+  is_target = calloc (end + 1, 1);
+  if (!off || !patches || !is_target)
     {
       free (off);
       free (patches);
+      free (is_target);
       return;
+    }
+
+  /* every branch target begins a fresh segment */
+  for (i = 0; i < end;)
+    {
+      cell_t w = body[i];
+
+      if ((xt_t)w == x_lit)
+        i += 2;
+      else if ((xt_t)w == x_squote)
+        i += 2 + ((size_t)body[i + 1] + 7) / 8;
+      else if ((xt_t)w == x_branch || (xt_t)w == x_0branch)
+        {
+          size_t t = (size_t)((cell_t *)body[i + 1] - body);
+
+          if (t <= end)
+            is_target[t] = 1;
+          i += 2;
+        }
+      else
+        i += 1;
     }
 
   mprotect (arena, ARENA_BYTES, PROT_READ | PROT_WRITE);
@@ -704,11 +712,15 @@ jit_xt (vm_t *vm, xt_t xt)
   fn = apos;
   prologue ();
   rpush_ip ();
+  dsp_live = 0;
+  dsp_delta = 0;
 
   for (i = 0; i < end;)
     {
       cell_t w = body[i];
 
+      if (is_target[i])
+        sync_dsp ();
       off[i] = apos;
       if ((xt_t)w == x_lit)
         {
@@ -726,6 +738,7 @@ jit_xt (vm_t *vm, xt_t xt)
       else if ((xt_t)w == x_0branch)
         {
           pop_rax ();
+          sync_dsp ();
           e8 (0x48);
           e8 (0x85);
           e8 (0xC0); /* test rax, rax */
@@ -739,6 +752,7 @@ jit_xt (vm_t *vm, xt_t xt)
         }
       else if ((xt_t)w == x_branch)
         {
+          sync_dsp ();
           e8 (0xE9); /* jmp rel32 */
           patches[npatch].at = apos;
           patches[npatch].tcell = (size_t)((cell_t *)body[i + 1] - body);
@@ -790,6 +804,7 @@ jit_xt (vm_t *vm, xt_t xt)
 
   free (off);
   free (patches);
+  free (is_target);
 }
 
 /* ---- words ---- */
