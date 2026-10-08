@@ -361,7 +361,7 @@ The initial implementation targets x86_64.
 
 Hotness metadata is not part of a Forth word's semantic representation. Execution counters and profiling information therefore live outside the dictionary entry, keyed by xt or another stable word identity. This keeps the dictionary layout independent of optimization policy.
 
-A word becomes eligible for JIT compilation when the estimated cost of continuing threaded execution exceeds the cost of translating it. The initial implementation may use a simple invocation counter; more advanced policies may later include thread length, backedge counts, or measured execution cost.
+A word becomes eligible for JIT compilation when the estimated cost of continuing threaded execution exceeds the cost of translating it. The current policy counts two events: entries through `docol`, keyed by xt, and taken backward branches in threaded code, keyed by the branch target. A loop therefore burns the word that contains it during the activation that runs it, and that activation continues natively from the branch target — possible without on-stack replacement machinery because every branch target is a segment boundary where the stacks are fully materialized and the continuation is already on the return stack. More advanced policies may later weigh thread length or measured execution cost.
 
 Hotness is an optimization policy, not part of the language.
 

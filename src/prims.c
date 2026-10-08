@@ -397,21 +397,34 @@ prim_ccomma (vm_t *vm, xt_t xt)
 
 /* branching: the cell after the branch xt is an absolute target */
 
+/* A taken backward branch is a loop iteration: the JIT counts it, and
+   at its threshold may run the rest of this activation natively,
+   leaving ip wherever the word's exit put it. */
 static void
 prim_branch (vm_t *vm, xt_t xt)
 {
+  xt_t *t = (xt_t *)*vm->ip;
+
   (void)xt;
-  vm->ip = (xt_t *)*vm->ip;
+  if (t <= vm->ip && jit_backedge (vm, t))
+    return;
+  vm->ip = t;
 }
 
 static void
 prim_0branch (vm_t *vm, xt_t xt)
 {
+  xt_t *t = (xt_t *)*vm->ip;
+
   (void)xt;
-  if (pop (vm) == 0)
-    vm->ip = (xt_t *)*vm->ip;
-  else
-    vm->ip++;
+  if (pop (vm) != 0)
+    {
+      vm->ip++;
+      return;
+    }
+  if (t <= vm->ip && jit_backedge (vm, t))
+    return;
+  vm->ip = t;
 }
 
 /* interpreter surface */
