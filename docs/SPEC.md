@@ -60,7 +60,7 @@ documentation the label obliges.
 | dictionary overflow | `allot` reports `dictionary full` and exits (fatal) |
 | name empty or over 255 chars | rejected; `:` and `create` report and discard the line |
 | `BASE` outside 2..36 | never becomes C UB: number parsing rejects the token, `.` falls back to decimal |
-| division by zero | undetected; inherits the platform's behavior |
+| division by zero | throws -10 through the signed division words (`/ mod /mod */ */mod fm/mod sm/rem`); `um/mod` alone is unguarded |
 | compile-only word interpreted | unprotected; corrupts data space silently |
 | uncaught `throw` | -1 aborts silently; -2 prints the stored `abort"` message; other codes print `uncaught throw: n`. All clear both stacks and discard the parse area |
 

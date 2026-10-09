@@ -128,22 +128,6 @@ prim_mul (vm_t *vm, xt_t xt)
   push (vm, pop (vm) * b);
 }
 
-static void
-prim_div (vm_t *vm, xt_t xt)
-{
-  (void)xt;
-  cell_t b = pop (vm);
-  push (vm, pop (vm) / b);
-}
-
-static void
-prim_mod (vm_t *vm, xt_t xt)
-{
-  (void)xt;
-  cell_t b = pop (vm);
-  push (vm, pop (vm) % b);
-}
-
 /* unsigned 64x64 -> 128 multiply, portable 32-bit halves. The cell
    is 64 bits by SPEC.md; no compiler 128-bit extension needed. */
 static void
@@ -795,8 +779,6 @@ register_prims (vm_t *vm)
   defprim (vm, "+", prim_add);
   defprim (vm, "-", prim_sub);
   defprim (vm, "*", prim_mul);
-  defprim (vm, "/", prim_div);
-  defprim (vm, "mod", prim_mod);
   defprim (vm, "um*", prim_um_star);
   defprim (vm, "um/mod", prim_um_slash_mod);
 

@@ -164,7 +164,7 @@ variable leave-link
 
 \ more arithmetic
 
-: /mod 2dup mod -rot / ;
+\ / mod /mod live after sm/rem now: division is forth
 : u< 2dup xor 0< if nip 0< else - 0< then ;
 : s>d dup 0< ;
 : within over - >r - r> u< ;
@@ -216,27 +216,6 @@ variable current-xt
     1 = if , else ['] lit , , ['] , , then
   then ; immediate
 
-\ double-cell arithmetic over um* and um/mod
-
-: dnegate invert swap invert 1+ swap over 0= if 1+ then ;
-: dabs dup 0< if dnegate then ;
-: m* 2dup xor 0< >r abs swap abs um* r> if dnegate then ;
-: sm/rem
-  2dup xor 0< >r
-  over 0< >r
-  abs >r dabs r> um/mod
-  swap r> if negate then swap
-  r> if negate then ;
-: fm/mod
-  dup >r sm/rem
-  swap dup 0<> over r@ xor 0< and if
-    r@ + swap 1-
-  else
-    swap
-  then
-  r> drop ;
-: */mod >r m* r> sm/rem ;
-: */ */mod nip ;
 
 \ pictured numeric output. Digits are held from the top of a fixed
 \ buffer downward; a full double in base 2 needs 128 chars plus sign.
@@ -308,6 +287,36 @@ variable abort-len
 : abort -1 throw ;
 : (abort") rot if abort-len ! abort-msg ! -2 throw then 2drop ;
 : abort" postpone s" postpone (abort") ; immediate
+
+\ double-cell arithmetic over um* and um/mod
+
+: dnegate invert swap invert 1+ swap over 0= if 1+ then ;
+: dabs dup 0< if dnegate then ;
+: m* 2dup xor 0< >r abs swap abs um* r> if dnegate then ;
+: sm/rem
+  dup 0= if -10 throw then
+  2dup xor 0< >r
+  over 0< >r
+  abs >r dabs r> um/mod
+  swap r> if negate then swap
+  r> if negate then ;
+\ division, burned out of the kernel: the C prims are gone and
+\ everything routes through sm/rem, where zero throws -10.
+
+: /mod >r s>d r> sm/rem ;
+: / /mod nip ;
+: mod /mod drop ;
+
+: fm/mod
+  dup >r sm/rem
+  swap dup 0<> over r@ xor 0< and if
+    r@ + swap 1-
+  else
+    swap
+  then
+  r> drop ;
+: */mod >r m* r> sm/rem ;
+: */ */mod nip ;
 
 \ input words. word skips leading delimiters by peeking the source
 \ through >in, then parses and stages a counted string past here.
