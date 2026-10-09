@@ -61,6 +61,14 @@ make CC=clang
 
 The project targets C11 and POSIX and avoids compiler-specific extensions where possible.
 
+## Acknowledgments
+
+Thanks to the ANS Forth committee and the Forth community for their
+work on the standard, to the maintainers of the Forth 2012 test suite
+that gates Ash's conformance, to the Gforth developers for the
+implementation used as a reference in Ash's tests, and to the GNU
+Project for its commitment to software freedom.
+
 ## License
 
 Copyright KEI SAWAMURA 2026.  
