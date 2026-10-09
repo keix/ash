@@ -388,7 +388,11 @@ variable abort-len
   ; immediate
 
 \ case: the selector stays on the stack; of compares a copy; endcase
-\ resolves every endof's forward branch down to case's 0 sentinel
+\ resolves every endof's forward branch down to case's 0 sentinel.
+\ Note endcase drops one cell: a default clause must leave the
+\ selector (or a replacement) for it --
+\   case 1 of ... endof 2 of ... endof ( default, selector on top )
+\   endcase
 
 : case 0 ; immediate
 : of postpone over postpone = postpone if postpone drop ; immediate
