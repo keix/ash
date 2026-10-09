@@ -16,7 +16,7 @@ build:
 	mkdir -p build
 
 FORTH_TESTS := tests/stack.fs tests/arithmetic.fs tests/numeric.fs \
-               tests/exceptions.fs tests/input.fs \
+               tests/exceptions.fs tests/input.fs tests/coreext.fs \
                tests/memory.fs tests/control.fs tests/compiler.fs
 
 TESTOBJ := $(filter-out build/main.o,$(OBJ))
@@ -63,8 +63,11 @@ test-ans: ash
 	echo "$$out" | grep -q "^0 tests failed" || { echo "$$out"; exit 1; }; \
 	echo "ans preliminary tests passed"; \
 	out=$$(./ash $(ANS_SUITE)/tester.fr $(ANS_SUITE)/core.fr $(ANS_SUITE)/coreplustest.fth < /dev/null 2>&1); \
-	if echo "$$out" | grep -E "INCORRECT|WRONG NUMBER|undefined word"; then exit 1; fi; \
-	echo "ans core and coreplus tests passed"
+	if echo "$$out" | grep -E "INCORRECT|WRONG NUMBER|undefined word|uncaught"; then exit 1; fi; \
+	echo "ans core and coreplus tests passed"; \
+	out=$$(./ash $(ANS_SUITE)/tester.fr $(ANS_SUITE)/utilities.fth $(ANS_SUITE)/errorreport.fth $(ANS_SUITE)/core.fr $(ANS_SUITE)/coreexttest.fth < /dev/null 2>&1); \
+	if echo "$$out" | grep -E "INCORRECT|WRONG NUMBER|undefined word|uncaught"; then exit 1; fi; \
+	echo "ans core-ext tests passed"
 
 format:
 	clang-format -i src/*.c src/*.h tests/c/*.c

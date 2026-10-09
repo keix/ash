@@ -20,7 +20,7 @@ enum
 static uint8_t *arena;
 static size_t apos;
 
-static xt_t x_lit, x_branch, x_0branch, x_exit, x_squote, x_fetch;
+static xt_t x_lit, x_branch, x_0branch, x_exit, x_squote, x_cquote, x_fetch;
 static xt_t x_execute, x_quit, x_abort, x_does, x_lshift, x_rshift;
 
 #define OFF_DSP ((uint32_t)offsetof (vm_t, dsp))
@@ -1215,6 +1215,8 @@ thread_end (cell_t *body)
         sz = 2;
       else if ((xt_t)w == x_squote)
         sz = 2 + ((size_t)body[i + 1] + 7) / 8;
+      else if ((xt_t)w == x_cquote)
+        sz = 2 + (((size_t)body[i + 1] & 0xff) + 7) / 8;
       else if ((xt_t)w == x_branch || (xt_t)w == x_0branch)
         {
           size_t t = (size_t)((cell_t *)body[i + 1] - body);
@@ -1285,6 +1287,8 @@ compile (vm_t *vm, xt_t xt, size_t osr)
         i += 2;
       else if ((xt_t)w == x_squote)
         i += 2 + ((size_t)body[i + 1] + 7) / 8;
+      else if ((xt_t)w == x_cquote)
+        i += 2 + (((size_t)body[i + 1] & 0xff) + 7) / 8;
       else if ((xt_t)w == x_branch || (xt_t)w == x_0branch)
         {
           size_t t = (size_t)((cell_t *)body[i + 1] - body);
@@ -1324,6 +1328,13 @@ compile (vm_t *vm, xt_t xt, size_t osr)
 
           push_const ((int64_t)&body[i + 2]);
           push_const (len);
+          i += 2 + ((size_t)len + 7) / 8;
+        }
+      else if ((xt_t)w == x_cquote)
+        {
+          cell_t len = body[i + 1] & 0xff;
+
+          push_const ((int64_t)((uint8_t *)&body[i + 1] + 7));
           i += 2 + ((size_t)len + 7) / 8;
         }
       else if ((xt_t)w == x_0branch)
@@ -1650,6 +1661,7 @@ jit_register (vm_t *vm)
   x_0branch = xt_of (vm, "0branch");
   x_exit = xt_of (vm, "exit");
   x_squote = xt_of (vm, "(s\")");
+  x_cquote = xt_of (vm, "(c\")");
   x_fetch = xt_of (vm, "@");
   x_lshift = xt_of (vm, "lshift");
   x_rshift = xt_of (vm, "rshift");

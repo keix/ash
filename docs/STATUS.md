@@ -13,11 +13,15 @@ Update this file in the same commit that adds or moves a word.
 ANS Core coverage   133 / 133 — complete
   in C              52
   in Forth          81
-beyond Core         59  (42 Forth, 17 C)
+beyond Core         see the Beyond Core section
 
 Forth-2012 suite    prelimtest.fth   0 of 57 failed
                     core.fr          0 failures
                     coreplustest.fth 0 failures
+                    coreexttest.fth  0 failures (threaded and jitted)
+
+ANS Core Ext        all words present (44 Forth, 5 C); terminal
+                    refill completes with the forth quit loop
 
 JIT                 hot words burn by default: counters outside the
                     dictionary (2-way set-associative, keyed by xt
@@ -76,26 +80,30 @@ passes, and the label is claimed in [SPEC.md](SPEC.md).
 
 ## Beyond Core
 
-Implemented from Core Ext and elsewhere:
+Implemented beyond the Core word set:
 
 ```text
-Forth:  nip tuck <> 0<> 0> .( :noname ?do again false hex true
-        within                    (Core Ext)
-        catch throw               (Exception word set)
-        cmove cmove>              (String word set)
-        dnegate dabs m+           (Double word set)
-        <= >= cell -rot           (common practice, not ANS)
-        interpret                 (common practice, not ANS)
-        ,string latest-xt mu/mod ud* >digit >counted
-        leave-link (resolve-leaves) ,msb ,do-setup ,loop-check
-        handler uncaught abort-msg abort-len (abort") (number)
-                                  (Ash internals)
-C:      \ parse  (Core Ext)   bye  (Tools Ext)
-        parse-name                (Forth-2012)
-        sp@ sp! rp@ rp!           (common practice, not ANS)
-        latest lit branch 0branch (does>) (s") (abort)
-        (push-source) (pop-source) jit jit-on jit-off
-                                  (Ash internals)
+Core Ext (complete; coreexttest.fth is the gate):
+  .( .r 0<> 0> 2>r 2r@ 2r> :noname <> ?do \ action-of again
+  buffer: c" case compile, defer defer! defer@ endcase endof
+  erase false hex holds is marker nip of pad parse parse-name
+  pick refill restore-input roll s\" save-input source-id to
+  true tuck u.r u> unused value within [compile]
+  (parse parse-name source-id unused \ are C; the rest forth)
+
+Exception + Exception Ext (complete): catch throw abort abort"
+String word set:  cmove cmove>
+Double word set:  dnegate dabs m+
+Tools Ext:        bye
+common practice:  <= >= cell -rot sp@ sp! rp@ rp! interpret
+
+Ash internals (forth): ,string latest-xt entry>xt mu/mod ud*
+  >digit >counted leave-link (resolve-leaves) ,msb ,do-setup
+  ,loop-check handler uncaught abort-msg abort-len (abort")
+  (number) here! current-xt src-c@+ s"-buf jit-all
+Ash internals (C): latest latest! lit branch 0branch (does>)
+  (s") (c") (abort) (push-source) (pop-source) jit jit-on
+  jit-off
 ```
 
 ## Deviations and spec decisions

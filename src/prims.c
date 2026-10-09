@@ -35,6 +35,19 @@ prim_do_squote (vm_t *vm, xt_t xt)
   vm->ip += cells;
 }
 
+/* (c"): counted-string literal. The length cell carries the count in
+   its low byte for the skip and, duplicated in its top byte, as the
+   count byte that immediately precedes the characters. */
+static void
+prim_do_cquote (vm_t *vm, xt_t xt)
+{
+  cell_t len = (cell_t)*vm->ip & 0xff;
+
+  (void)xt;
+  push (vm, (cell_t)((uint8_t *)vm->ip + 7));
+  vm->ip += 1 + ((size_t)len + 7) / 8;
+}
+
 /* stack manipulation */
 
 static void
@@ -474,6 +487,20 @@ prim_latest (vm_t *vm, xt_t xt)
 }
 
 static void
+prim_latest_store (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  vm->latest = (dict_entry_t *)pop (vm);
+}
+
+static void
+prim_unused (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, vm->here_lim - vm->here);
+}
+
+static void
 prim_base (vm_t *vm, xt_t xt)
 {
   (void)xt;
@@ -535,6 +562,13 @@ prim_source (vm_t *vm, xt_t xt)
   (void)xt;
   push (vm, (cell_t)src->buf);
   push (vm, src->len);
+}
+
+static void
+prim_source_id (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, active_source (vm)->source_id);
 }
 
 static void
@@ -805,15 +839,19 @@ register_prims (vm_t *vm)
   defprim (vm, "find", prim_find);
   defprim (vm, "state", prim_state);
   defprim (vm, "latest", prim_latest);
+  defprim (vm, "latest!", prim_latest_store);
+  defprim (vm, "unused", prim_unused);
   defprim (vm, "base", prim_base);
   defprim (vm, ">in", prim_to_in);
   defprim (vm, "parse", prim_parse);
   defprim (vm, "parse-name", prim_parse_name);
   defprim (vm, "source", prim_source);
+  defprim (vm, "source-id", prim_source_id);
   defprim (vm, "(push-source)", prim_push_source);
   defprim (vm, "(pop-source)", prim_pop_source);
   defprim (vm, "align", prim_align);
   defprim (vm, "(s\")", prim_do_squote);
+  defprim (vm, "(c\")", prim_do_cquote);
 
   defprim (vm, "'", prim_tick);
   defprim (vm, "[']", prim_bracket_tick);

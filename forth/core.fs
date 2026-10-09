@@ -188,7 +188,14 @@ variable leave-link
 : ] -1 state ! ;
 : entry>xt cell+ 1+ dup c@ swap 1+ + aligned cell+ ;
 : latest-xt latest entry>xt ;
-: recurse latest-xt , ; immediate
+
+\ recurse compiles the definition being made, which :noname words do
+\ not register in the dictionary -- so : itself, re-defined in forth
+\ over the kernel's, records the xt of whatever is open.
+
+variable current-xt
+: : [ ' : ] literal execute latest-xt current-xt ! ;
+: recurse current-xt @ , ; immediate
 
 \ postpone appends compilation semantics: an immediate word's xt is
 \ compiled directly; a normal word gets lit xt , so the definer
@@ -201,7 +208,7 @@ variable leave-link
 \ copied at compile time from any colon word's code field -- and
 \ leaves the xt on the stack for the ; that ends the definition.
 
-: :noname align 0 , here [ ' nip @ ] literal , ] ;
+: :noname align 0 , here dup current-xt ! [ ' nip @ ] literal , ] ;
 : postpone
   parse-name >counted find ?dup 0= if
     drop ." postpone: word not found" cr
@@ -365,6 +372,123 @@ variable abort-len
   repeat 2drop ;
 
 : evaluate -1 (push-source) ['] interpret catch (pop-source) throw ;
+
+\ core extension words, all forth
+
+: u> swap u< ;
+: pick 1+ cells sp@ + @ ;
+: roll dup 0= if drop exit then swap >r 1- recurse r> swap ;
+
+\ the pairs are compiled inline so the caller's return frame is not
+\ in the way, like i and unloop
+
+: 2>r ['] swap , ['] >r , ['] >r , ; immediate
+: 2r> ['] r> , ['] r> , ['] swap , ; immediate
+: 2r@ ['] r> , ['] r> , ['] 2dup , ['] >r , ['] >r , ['] swap ,
+  ; immediate
+
+\ case: the selector stays on the stack; of compares a copy; endcase
+\ resolves every endof's forward branch down to case's 0 sentinel
+
+: case 0 ; immediate
+: of postpone over postpone = postpone if postpone drop ; immediate
+: endof postpone else ; immediate
+: endcase
+  postpone drop begin ?dup while postpone then repeat ; immediate
+
+: value create , does> @ ;
+: to ' >body state @ if postpone literal postpone ! else ! then
+  ; immediate
+: buffer: create allot ;
+
+\ marker: the word's own body remembers where here and latest stood
+\ just before its header; executing it puts them back.
+
+: here! here - allot ;
+: marker
+  here latest create swap , ,
+  does> dup @ swap cell+ @ latest! here! ;
+
+: pad here 512 + ;
+
+\ s" grows interpretation semantics: the string is copied to one of
+\ two alternating transient regions above pad, as the standard asks
+
+variable s"-buf
+: s"
+  state @ if ['] (s") , ,string exit then
+  34 parse
+  s"-buf @ if 1024 else 1536 then
+  s"-buf @ 0= s"-buf !
+  here +
+  swap >r swap over r@ cmove
+  r> ; immediate
+: compile, , ;
+: u.r >r 0 <# #s #> r> over - 0 max spaces type ;
+: .r >r dup abs 0 <# #s rot sign #> r> over - 0 max spaces type ;
+
+\ c" lays the count twice in the length cell: the low byte for the
+\ skip, the top byte as the count byte right before the characters.
+
+: c" ['] (c") , 34 parse dup dup 56 lshift or ,
+  begin dup 0> while swap dup c@ c, 1+ swap 1- repeat 2drop align
+  ; immediate
+
+: erase 0 fill ;
+: holds begin dup while 1- 2dup + c@ hold repeat 2drop ;
+
+\ deferred words. The does-thread is "@ execute", which const_like
+\ does not fold -- a deferred word stays honestly indirect.
+
+: defer create ['] abort , does> @ execute ;
+: defer! >body ! ;
+: defer@ >body @ ;
+: is
+  state @ if postpone ['] postpone defer! else ' defer! then
+  ; immediate
+: action-of
+  state @ if postpone ['] postpone defer@ else ' defer@ then
+  ; immediate
+
+\ s\" with the Forth-2012 escapes, translated while copying; \m lays
+\ two characters, \x two hex digits, anything unknown is itself.
+
+\ the input-source words over >in and the source stack. refill is
+\ false for every source until the terminal loop moves to forth.
+
+: save-input >in @ 1 ;
+: restore-input drop >in ! 0 ;
+: refill 0 ;
+: [compile] ' , ; immediate
+
+: src-c@+ source drop >in @ + c@ 1 >in +! ;
+
+: s\"
+  ['] (s") , here 0 , 0
+  begin src-c@+ dup [char] " <> while
+    dup [char] \ = if
+      drop src-c@+ dup case
+        [char] a of drop 7 endof
+        [char] b of drop 8 endof
+        [char] e of drop 27 endof
+        [char] f of drop 12 endof
+        [char] l of drop 10 endof
+        [char] n of drop 10 endof
+        [char] q of drop 34 endof
+        [char] r of drop 13 endof
+        [char] t of drop 9 endof
+        [char] v of drop 11 endof
+        [char] z of drop 0 endof
+        [char] " of drop 34 endof
+        [char] \ of drop 92 endof
+        [char] m of drop 13 c, 1+ 10 endof
+        [char] x of drop
+          src-c@+ >digit drop 16 * src-c@+ >digit drop + endof
+      endcase
+    then
+    c, 1+
+  repeat drop
+  swap ! align ; immediate
 
 \ compile every colon word so far to native; the code field is the
 \ only thing that changes, so order does not matter.
