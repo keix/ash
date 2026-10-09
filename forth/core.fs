@@ -164,7 +164,7 @@ variable leave-link
 
 \ more arithmetic
 
-: /mod 2dup mod -rot / ;
+\ / mod /mod live after sm/rem now: division is forth
 : u< 2dup xor 0< if nip 0< else - 0< then ;
 : s>d dup 0< ;
 : within over - >r - r> u< ;
@@ -216,27 +216,6 @@ variable current-xt
     1 = if , else ['] lit , , ['] , , then
   then ; immediate
 
-\ double-cell arithmetic over um* and um/mod
-
-: dnegate invert swap invert 1+ swap over 0= if 1+ then ;
-: dabs dup 0< if dnegate then ;
-: m* 2dup xor 0< >r abs swap abs um* r> if dnegate then ;
-: sm/rem
-  2dup xor 0< >r
-  over 0< >r
-  abs >r dabs r> um/mod
-  swap r> if negate then swap
-  r> if negate then ;
-: fm/mod
-  dup >r sm/rem
-  swap dup 0<> over r@ xor 0< and if
-    r@ + swap 1-
-  else
-    swap
-  then
-  r> drop ;
-: */mod >r m* r> sm/rem ;
-: */ */mod nip ;
 
 \ pictured numeric output. Digits are held from the top of a fixed
 \ buffer downward; a full double in base 2 needs 128 chars plus sign.
@@ -309,6 +288,36 @@ variable abort-len
 : (abort") rot if abort-len ! abort-msg ! -2 throw then 2drop ;
 : abort" postpone s" postpone (abort") ; immediate
 
+\ double-cell arithmetic over um* and um/mod
+
+: dnegate invert swap invert 1+ swap over 0= if 1+ then ;
+: dabs dup 0< if dnegate then ;
+: m* 2dup xor 0< >r abs swap abs um* r> if dnegate then ;
+: sm/rem
+  dup 0= if -10 throw then
+  2dup xor 0< >r
+  over 0< >r
+  abs >r dabs r> um/mod
+  swap r> if negate then swap
+  r> if negate then ;
+\ division, burned out of the kernel: the C prims are gone and
+\ everything routes through sm/rem, where zero throws -10.
+
+: /mod >r s>d r> sm/rem ;
+: / /mod nip ;
+: mod /mod drop ;
+
+: fm/mod
+  dup >r sm/rem
+  swap dup 0<> over r@ xor 0< and if
+    r@ + swap 1-
+  else
+    swap
+  then
+  r> drop ;
+: */mod >r m* r> sm/rem ;
+: */ */mod nip ;
+
 \ input words. word skips leading delimiters by peeking the source
 \ through >in, then parses and stages a counted string past here.
 
@@ -358,9 +367,18 @@ variable abort-len
   nip 0<> if r> drop r> base ! -13 throw then
   drop r> if negate then r> base ! ;
 
+variable last-tok
+variable last-len
+create tok-buf 260 allot
+
+\ stage the name off here, so a word being interpreted never clobbers
+\ the data-space pointer a program may be building on
+: >tok dup tok-buf c! tok-buf 1+ swap cmove tok-buf ;
+
 : interpret
   begin parse-name dup while
-    2dup >counted find ?dup if
+    2dup last-len ! last-tok !
+    2dup >tok find ?dup if
       2swap 2drop
       state @ if
         1 = if execute else , then
@@ -369,6 +387,7 @@ variable abort-len
       drop (number)
       state @ if postpone literal then
     then
+    depth 0< if -4 throw then
   repeat 2drop ;
 
 : evaluate -1 (push-source) ['] interpret catch (pop-source) throw ;
@@ -388,7 +407,11 @@ variable abort-len
   ; immediate
 
 \ case: the selector stays on the stack; of compares a copy; endcase
-\ resolves every endof's forward branch down to case's 0 sentinel
+\ resolves every endof's forward branch down to case's 0 sentinel.
+\ Note endcase drops one cell: a default clause must leave the
+\ selector (or a replacement) for it --
+\   case 1 of ... endof 2 of ... endof ( default, selector on top )
+\   endcase
 
 : case 0 ; immediate
 : of postpone over postpone = postpone if postpone drop ; immediate
@@ -489,6 +512,34 @@ variable s"-buf
     c, 1+
   repeat drop
   swap ! align ; immediate
+
+\ the quit loop, in forth: refill the terminal, interpret, report.
+\ Its catch is the standing top-level handler, so every repl error
+\ arrives as a throw; -13 names the token interpret just recorded.
+
+create tib 1024 allot
+
+: refill
+  source-id 0= if
+    tib 1024 accept
+    dup 0= (eof?) and if drop false exit then
+    tib swap (set-source) true
+  else false then ;
+
+: report
+  dup -13 = if drop ." undefined word: " last-tok @ last-len @ type cr
+  else dup -4 = if drop ." stack underflow" cr
+  else dup -1 = if drop
+  else dup -2 = if drop abort-msg @ abort-len @ type cr
+  else ." uncaught throw: " . cr
+  then then then then
+  begin depth 0> while drop repeat
+  0 state !
+  source nip >in ! ;
+
+: interpret-line ['] interpret catch ?dup if report then ."  ok" cr ;
+: (quit-loop) begin refill while interpret-line repeat bye ;
+: quit 0 handler ! rp0 rp! (quit-loop) ;
 
 \ compile every colon word so far to native; the code field is the
 \ only thing that changes, so order does not matter.

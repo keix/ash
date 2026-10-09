@@ -83,6 +83,10 @@ main (int argc, char **argv)
 {
   vm_t vm = { 0 };
 
+  /* line-buffer stdout so its diagnostics and stderr's interleave in
+     write order -- a terminal already does this; a pipe would not */
+  setvbuf (stdout, NULL, _IOLBF, 0);
+
   vm.dsp = vm.dsp0 = dstack + DSTACK_CELLS;
   vm.rsp = vm.rsp0 = rstack + RSTACK_CELLS;
   vm.dsp_lim = dstack;
@@ -106,6 +110,24 @@ main (int argc, char **argv)
           }
       return 0;
     }
+
+  /* the quit loop lives in forth when core.fs provided it; the C
+     loop below remains only as the bootstrap fallback */
+  {
+    dict_entry_t *q = find_word (&vm, "(quit-loop)", 11);
+
+    if (q)
+      {
+        if (isatty (STDIN_FILENO))
+          fputs ("Ash, Copyright (C) 2026 KEI SAWAMURA\n"
+                 "Ash is licensed under the MIT License.\n"
+                 "Copying and modifying is encouraged and appreciated. "
+                 "Type `bye' to exit\n",
+                 stdout);
+        run_xt (&vm, entry_xt (q));
+        return 0;
+      }
+  }
 
   if (isatty (STDIN_FILENO))
     fputs ("Ash, Copyright (C) 2026 KEI SAWAMURA\n"

@@ -11,8 +11,8 @@ Update this file in the same commit that adds or moves a word.
 
 ```text
 ANS Core coverage   133 / 133 — complete
-  in C              52
-  in Forth          81
+  in C              50
+  in Forth          83
 beyond Core         see the Beyond Core section
 
 Forth-2012 suite    prelimtest.fth   0 of 57 failed
@@ -45,15 +45,20 @@ JIT                 hot words burn by default: counters outside the
                     prior sessions: python 3.14 7.05s on fib
 ```
 
-The dot moved: `.` was a C primitive and is now Forth over pictured
-numeric output — the first word burned out of the kernel.
+Three words have burned out of the kernel so far: `.` went first,
+over pictured numeric output; `/` and `mod` followed, routed through
+`sm/rem` — where division by zero now throws -10 instead of
+inheriting the platform's crash. The text interpreter's outer loop
+is Forth too now: `quit` refills, interprets, and reports entirely in
+core.fs, so every REPL error arrives as a throw and the C
+`interpret_source` remains only to bootstrap core.fs and run files.
 
 ## Core words implemented in C — the bootstrapping boundary
 
 ```text
-! ' * + , - / 0= : ; < = > >in >r @
+! ' * + , - 0= : ; < = > >in >r @
 accept align allot and base c! c, c@ create depth dup drop
-emit execute exit find here immediate invert key lshift mod or
+emit execute exit find here immediate invert key lshift or
 over quit r> r@ rot rshift source state swap um* um/mod xor
 [']
 ```
@@ -61,11 +66,12 @@ over quit r> r@ rot rshift source state swap um* um/mod xor
 ## Core words implemented in Forth — core.fs
 
 ```text
-# #> #s ( ." */ */mod +! +loop . /mod 0< 1+ 1- 2! 2* 2/ 2@
+# #> #s ( ." */ */mod +! +loop . / /mod 0< 1+ 1- 2! 2* 2/ 2@
 2drop 2dup 2over 2swap <# >body ?dup [ ] [char] abs aligned
 begin bl cell+ cells char char+ chars constant count cr
 abort abort" decimal do does> else environment? evaluate fill
-fm/mod hold i if j leave literal loop m* max min move negate
+fm/mod hold i if j leave literal loop m* max min mod move
+negate
 postpone recurse repeat s" s>d sign sm/rem space spaces then
 type u. u< unloop until variable while word >number
 ```

@@ -128,22 +128,6 @@ prim_mul (vm_t *vm, xt_t xt)
   push (vm, pop (vm) * b);
 }
 
-static void
-prim_div (vm_t *vm, xt_t xt)
-{
-  (void)xt;
-  cell_t b = pop (vm);
-  push (vm, pop (vm) / b);
-}
-
-static void
-prim_mod (vm_t *vm, xt_t xt)
-{
-  (void)xt;
-  cell_t b = pop (vm);
-  push (vm, pop (vm) % b);
-}
-
 /* unsigned 64x64 -> 128 multiply, portable 32-bit halves. The cell
    is 64 bits by SPEC.md; no compiler 128-bit extension needed. */
 static void
@@ -571,6 +555,41 @@ prim_source_id (vm_t *vm, xt_t xt)
   push (vm, active_source (vm)->source_id);
 }
 
+/* rebind the active source to a fresh buffer: the forth refill */
+static void
+prim_set_source (vm_t *vm, xt_t xt)
+{
+  input_source_t *src = active_source (vm);
+  cell_t len = pop (vm);
+  const char *buf = (const char *)pop (vm);
+
+  (void)xt;
+  src->buf = buf;
+  src->len = len;
+  src->in = 0;
+}
+
+static void
+prim_eof (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, feof (stdin) ? -1 : 0);
+}
+
+static void
+prim_rp0 (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, (cell_t)vm->rsp0);
+}
+
+static void
+prim_sp0 (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, (cell_t)vm->dsp0);
+}
+
 static void
 prim_push_source (vm_t *vm, xt_t xt)
 {
@@ -795,8 +814,6 @@ register_prims (vm_t *vm)
   defprim (vm, "+", prim_add);
   defprim (vm, "-", prim_sub);
   defprim (vm, "*", prim_mul);
-  defprim (vm, "/", prim_div);
-  defprim (vm, "mod", prim_mod);
   defprim (vm, "um*", prim_um_star);
   defprim (vm, "um/mod", prim_um_slash_mod);
 
@@ -847,6 +864,10 @@ register_prims (vm_t *vm)
   defprim (vm, "parse-name", prim_parse_name);
   defprim (vm, "source", prim_source);
   defprim (vm, "source-id", prim_source_id);
+  defprim (vm, "(set-source)", prim_set_source);
+  defprim (vm, "(eof?)", prim_eof);
+  defprim (vm, "rp0", prim_rp0);
+  defprim (vm, "sp0", prim_sp0);
   defprim (vm, "(push-source)", prim_push_source);
   defprim (vm, "(pop-source)", prim_pop_source);
   defprim (vm, "align", prim_align);

@@ -55,12 +55,12 @@ documentation the label obliges.
 
 | Condition | Behavior |
 |---|---|
-| undefined word | in the C boot interpreter (repl, files): message to stderr, data stack cleared, compile state left, rest of the current line discarded. In the Forth interpreter (`evaluate`): `throw -13` |
-| stack underflow / overflow | detected between tokens at the outer interpreter — after the fact; recovery as above. A single word can still run past the physical ends unchecked; the inner loop is uninstrumented |
+| undefined word | `throw -13`; the quit loop names the token (`undefined word: x`), clears the stacks, and resumes. Interpreting from a file reports and discards the line in the C bootstrap loop |
+| stack underflow / overflow | the quit loop's interpret throws -4 between words and reports `stack underflow`; a single word can still run past the ends unchecked |
 | dictionary overflow | `allot` reports `dictionary full` and exits (fatal) |
 | name empty or over 255 chars | rejected; `:` and `create` report and discard the line |
 | `BASE` outside 2..36 | never becomes C UB: number parsing rejects the token, `.` falls back to decimal |
-| division by zero | undetected; inherits the platform's behavior |
+| division by zero | throws -10 through the signed division words (`/ mod /mod */ */mod fm/mod sm/rem`); `um/mod` alone is unguarded |
 | compile-only word interpreted | unprotected; corrupts data space silently |
 | uncaught `throw` | -1 aborts silently; -2 prints the stored `abort"` message; other codes print `uncaught throw: n`. All clear both stacks and discard the parse area |
 
