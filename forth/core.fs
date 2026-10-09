@@ -367,9 +367,18 @@ variable abort-len
   nip 0<> if r> drop r> base ! -13 throw then
   drop r> if negate then r> base ! ;
 
+variable last-tok
+variable last-len
+create tok-buf 260 allot
+
+\ stage the name off here, so a word being interpreted never clobbers
+\ the data-space pointer a program may be building on
+: >tok dup tok-buf c! tok-buf 1+ swap cmove tok-buf ;
+
 : interpret
   begin parse-name dup while
-    2dup >counted find ?dup if
+    2dup last-len ! last-tok !
+    2dup >tok find ?dup if
       2swap 2drop
       state @ if
         1 = if execute else , then
@@ -378,6 +387,7 @@ variable abort-len
       drop (number)
       state @ if postpone literal then
     then
+    depth 0< if -4 throw then
   repeat 2drop ;
 
 : evaluate -1 (push-source) ['] interpret catch (pop-source) throw ;
@@ -502,6 +512,34 @@ variable s"-buf
     c, 1+
   repeat drop
   swap ! align ; immediate
+
+\ the quit loop, in forth: refill the terminal, interpret, report.
+\ Its catch is the standing top-level handler, so every repl error
+\ arrives as a throw; -13 names the token interpret just recorded.
+
+create tib 1024 allot
+
+: refill
+  source-id 0= if
+    tib 1024 accept
+    dup 0= (eof?) and if drop false exit then
+    tib swap (set-source) true
+  else false then ;
+
+: report
+  dup -13 = if drop ." undefined word: " last-tok @ last-len @ type cr
+  else dup -4 = if drop ." stack underflow" cr
+  else dup -1 = if drop
+  else dup -2 = if drop abort-msg @ abort-len @ type cr
+  else ." uncaught throw: " . cr
+  then then then then
+  begin depth 0> while drop repeat
+  0 state !
+  source nip >in ! ;
+
+: interpret-line ['] interpret catch ?dup if report then ."  ok" cr ;
+: (quit-loop) begin refill while interpret-line repeat bye ;
+: quit 0 handler ! rp0 rp! (quit-loop) ;
 
 \ compile every colon word so far to native; the code field is the
 \ only thing that changes, so order does not matter.

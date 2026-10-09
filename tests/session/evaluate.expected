@@ -4,7 +4,7 @@ uncaught throw: 9
  ok
 3  ok
  ok
-uncaught throw: -13 
+undefined word: no-such
  ok
 7  ok
  ok

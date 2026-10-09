@@ -48,7 +48,10 @@ JIT                 hot words burn by default: counters outside the
 Three words have burned out of the kernel so far: `.` went first,
 over pictured numeric output; `/` and `mod` followed, routed through
 `sm/rem` — where division by zero now throws -10 instead of
-inheriting the platform's crash.
+inheriting the platform's crash. The text interpreter's outer loop
+is Forth too now: `quit` refills, interprets, and reports entirely in
+core.fs, so every REPL error arrives as a throw and the C
+`interpret_source` remains only to bootstrap core.fs and run files.
 
 ## Core words implemented in C — the bootstrapping boundary
 
