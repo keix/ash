@@ -541,6 +541,29 @@ create tib 1024 allot
 : (quit-loop) begin refill while interpret-line repeat bye ;
 : quit 0 handler ! rp0 rp! (quit-loop) ;
 
+\ [if] [else] [then]: conditional compilation. [else] skips text,
+\ honoring nesting, pulling fresh lines through refill when the
+\ current source runs out -- so it crosses lines wherever refill can.
+
+: lower dup [char] A [char] [ within if 32 + then ;
+: tok=ci ( a1 u1 a2 u2 -- f )
+  rot over <> if drop 2drop 0 exit then
+  0 do
+    over i + c@ lower over i + c@ lower <> if 2drop 0 unloop exit then
+  loop 2drop -1 ;
+
+: [then] ; immediate
+: [else]
+  1 begin
+    begin parse-name dup while
+      2dup s" [if]" tok=ci if 2drop 1+ else
+      2dup s" [then]" tok=ci if 2drop 1- else
+      2dup s" [else]" tok=ci if 2drop 1- dup if 1+ then else
+        2drop then then then
+      ?dup 0= if exit then
+    repeat 2drop refill 0= until ; immediate
+: [if] 0= if ['] [else] execute then ; immediate
+
 \ compile every colon word so far to native; the code field is the
 \ only thing that changes, so order does not matter.
 

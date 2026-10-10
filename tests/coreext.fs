@@ -41,3 +41,8 @@ t{ source-id 0<> -> -1 }t
 t{ rf -> 0 }t
 : sri save-input restore-input ;
 t{ sri -> 0 }t
+t{ true [if] 111 [else] 222 [then] -> 111 }t
+t{ false [if] 111 [else] 222 [then] -> 222 }t
+t{ false [if] 1 [then] 42 -> 42 }t
+t{ true [if] 1 false [if] 2 [then] 3 [then] -> 1 3 }t
+t{ false [if] true [if] 2 [then] [else] 9 [then] -> 9 }t

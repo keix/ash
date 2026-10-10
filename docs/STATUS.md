@@ -20,6 +20,9 @@ Forth-2012 suite    prelimtest.fth   0 of 57 failed
                     coreplustest.fth 0 failures
                     coreexttest.fth  0 failures (threaded and jitted)
 
+ANS Core Ext        complete -- every word present; [if] [else]
+                    [then] cross lines through refill
+
 ANS Core Ext        all words present (44 Forth, 5 C); terminal
                     refill completes with the forth quit loop
 
