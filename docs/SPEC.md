@@ -11,15 +11,15 @@ decision changes, in the same commit.
 ## System
 
 Ash targets the ANS Forth Core word set, with selected later-standard
-words where they simplify the system. The Core word set is complete
-(133/133) and the Forth-2012 test suite's Core tests pass
-(`make test-ans`: prelimtest, core.fr, coreplustest), so Ash claims
-the label, with the phrases the standard requires for the optional
-word sets it touches:
+words where they simplify the system. The Core word set (133/133)
+and the Core Extensions word set are complete; the Forth-2012 test
+suite's Core and Core-Ext tests pass (`make test-ans`: prelimtest,
+core.fr, coreplustest, coreexttest). Ash claims the label with the
+phrases the standard requires for the word sets it touches:
 
 ```text
 ANS Forth System
-Providing name(s) from the Core Extensions word set
+Providing the Core Extensions word set
 Providing the Exception word set
 Providing the Exception Extensions word set
 Providing name(s) from the Double-Number word set
