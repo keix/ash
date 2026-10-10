@@ -38,6 +38,16 @@ Ash is built around three explicit boundaries: semantic, execution, and optimiza
 
 See [docs/DESIGN.md](docs/DESIGN.md) for the execution model, dictionary layout, threaded interpreter, and C/Forth bootstrapping boundary.
 
+## Conformance
+
+Ash provides the ANS Forth Core and Core Extensions word sets in full, the Exception and Exception Extensions word sets, and selected words from the Double-Number, String, and Programming-Tools Extensions. It passes the Forth 2012 test suite's Core and Core Extensions tests:
+
+```sh
+make test-ans
+```
+
+See [docs/SPEC.md](docs/SPEC.md) for the implementation-defined options and ambiguous-condition behavior the label obliges.
+
 ## Development
 
 A Nix development shell is recommended for a reproducible environment.
