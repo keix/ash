@@ -96,4 +96,8 @@ The word-by-word list is the Beyond Core section of
   `sp@ sp! rp@ rp!`.
 - Ash internals exposed as words: `lit`, `branch`, `0branch`,
   `(does>)`, and the other parenthesized names STATUS.md lists.
+- Programming-Tools Extensions present: `ahead cs-pick cs-roll
+  [if] [else] [then] [defined] [undefined] n>r nr> synonym` (the
+  official toolstest passes); the base `.s ? dump see words` are not
+  yet provided, so the label stays "name(s) from".
 - Interactive startup prints a license banner when stdin is a tty.

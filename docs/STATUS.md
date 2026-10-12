@@ -22,6 +22,7 @@ Forth-2012 suite    prelimtest.fth   0 of 57 failed
                     doubletest.fth   0 failures
                     string words     tested; stringtest.fth's String
                                      Extensions (substitute et al) pending
+                    toolstest.fth    0 failures (tools extensions)
 
 ANS Core Ext        complete -- every word present; [if] [else]
                     [then] cross lines through refill

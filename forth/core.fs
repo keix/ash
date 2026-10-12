@@ -486,12 +486,18 @@ variable s"-buf
 \ s\" with the Forth-2012 escapes, translated while copying; \m lays
 \ two characters, \x two hex digits, anything unknown is itself.
 
-\ the input-source words over >in and the source stack. refill is
-\ false for every source until the terminal loop moves to forth.
+\ the input-source words over >in and the source stack. refill reads
+\ a terminal line into tib, advances a file to its next line, or is
+\ false for a string -- so a parsing word can span lines.
+
+create tib 1024 allot
 
 : save-input >in @ 1 ;
 : restore-input drop >in ! 0 ;
-: refill 0 ;
+: refill
+  source-id dup 0= if drop tib 1024 accept
+    dup 0= (eof?) and if drop false else tib swap (set-source) true then
+  else 0> if (refill-file) else false then then ;
 : [compile] ' , ; immediate
 
 : src-c@+ source drop >in @ + c@ 1 >in +! ;
@@ -527,14 +533,6 @@ variable s"-buf
 \ Its catch is the standing top-level handler, so every repl error
 \ arrives as a throw; -13 names the token interpret just recorded.
 
-create tib 1024 allot
-
-: refill
-  source-id 0= if
-    tib 1024 accept
-    dup 0= (eof?) and if drop false exit then
-    tib swap (set-source) true
-  else false then ;
 
 : report
   dup -13 = if drop ." undefined word: " last-tok @ last-len @ type cr
@@ -549,8 +547,37 @@ create tib 1024 allot
 
 : interpret-line ['] interpret catch ?dup if report then ."  ok" cr ;
 : (load-line) ['] interpret catch ?dup if report then ;
+: (load-file) begin refill while (load-line) repeat ;
 : (quit-loop) begin refill while interpret-line repeat bye ;
 : quit 0 handler ! rp0 rp! (quit-loop) ;
+
+\ programming-tools extensions. The control-flow stack is the data
+\ stack -- orig/dest are single-cell hole addresses -- so cs-pick and
+\ cs-roll are just pick and roll. ahead compiles an unresolved
+\ forward branch, like if without a condition.
+
+: ahead ['] branch , here 0 , ; immediate
+: cs-pick pick ;
+: cs-roll roll ;
+: [defined] parse-name >tok find nip 0<> ; immediate
+: [undefined] parse-name >tok find nip 0= ; immediate
+
+\ n>r / nr> move n+1 cells between the stacks. Written to preserve
+\ the word's own return address, which sits on top of the return
+\ stack throughout -- each step pops it, works, and pushes it back.
+
+: n>r
+  dup begin dup while rot r> swap >r >r 1- repeat
+  drop r> swap >r >r ;
+: nr>
+  r> r> swap >r dup begin dup while r> r> swap >r -rot 1- repeat drop ;
+
+\ synonym: new runs old, and inherits old's immediacy
+
+: synonym
+  create parse-name >tok find swap , 1 = if immediate then
+  does> @ execute ;
+
 
 \ [if] [else] [then]: conditional compilation. [else] skips text,
 \ honoring nesting, pulling fresh lines through refill when the

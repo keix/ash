@@ -555,6 +555,13 @@ prim_source_id (vm_t *vm, xt_t xt)
   push (vm, active_source (vm)->source_id);
 }
 
+static void
+prim_refill_file (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, refill_line (vm) ? -1 : 0);
+}
+
 /* rebind the active source to a fresh buffer: the forth refill */
 static void
 prim_set_source (vm_t *vm, xt_t xt)
@@ -864,6 +871,7 @@ register_prims (vm_t *vm)
   defprim (vm, "parse-name", prim_parse_name);
   defprim (vm, "source", prim_source);
   defprim (vm, "source-id", prim_source_id);
+  defprim (vm, "(refill-file)", prim_refill_file);
   defprim (vm, "(set-source)", prim_set_source);
   defprim (vm, "(eof?)", prim_eof);
   defprim (vm, "rp0", prim_rp0);
