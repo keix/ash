@@ -242,7 +242,8 @@ variable hld
 
 \ numeric input: accumulate digits into a double in BASE.
 
-: m+ swap >r dup >r + dup r> u< negate r> + ;
+: um+ ( a b -- s carry ) dup >r + dup r> u< 1 and ;
+: m+ ( lo hi n -- lo2 hi2 ) dup 0< >r rot swap um+ rot r> + + ;
 : ud* tuck * >r um* r> + ;
 : >digit
   dup [char] 0 [char] : within if [char] 0 - -1 exit then
@@ -349,13 +350,17 @@ variable abort-len
 \ keep in sync with parse_number in interp.c: 'c' char literals and
 \ the Forth-2012 prefixes # $ % with the sign after the prefix.
 
+: /string ( a u n -- a+n u-n ) dup >r - swap r> + swap ;
+
+\ convert a token in BASE. A '.' anywhere makes it a double; the
+\ prefixes # $ % and 'c' literals carry too. Returns the value(s)
+\ with a cell count on top: ( n 1 ) or ( dlo dhi 2 ).
+
 : (number)
   dup 0= if -13 throw then
   dup 3 = if
     over dup c@ [char] ' = swap 2 + c@ [char] ' = and if
-      drop 1+ c@ exit
-    then
-  then
+      drop 1+ c@ 1 exit then then
   base @ >r
   over c@ [char] # = if 10 base ! swap 1+ swap 1- else
   over c@ [char] $ = if 16 base ! swap 1+ swap 1- else
@@ -364,9 +369,13 @@ variable abort-len
   over c@ [char] - = over 1 > and
   dup >r if 1- swap 1+ swap then
   0 0 2swap >number
+  dup if over c@ [char] . = if
+    1- swap 1+ swap >number
+    nip 0<> if r> drop r> base ! -13 throw then
+    r> if dnegate then r> base ! 2 exit
+  then then
   nip 0<> if r> drop r> base ! -13 throw then
-  drop r> if negate then r> base ! ;
-
+  r> if dnegate then r> base ! drop 1 ;
 variable last-tok
 variable last-len
 create tok-buf 260 allot
@@ -374,6 +383,8 @@ create tok-buf 260 allot
 \ stage the name off here, so a word being interpreted never clobbers
 \ the data-space pointer a program may be building on
 : >tok dup tok-buf c! tok-buf 1+ swap cmove tok-buf ;
+
+: 2literal swap postpone literal postpone literal ; immediate
 
 : interpret
   begin parse-name dup while
@@ -385,7 +396,8 @@ create tok-buf 260 allot
       else drop execute then
     else
       drop (number)
-      state @ if postpone literal then
+      1 = if state @ if postpone literal then
+      else state @ if postpone 2literal then then
     then
     depth 0< if -4 throw then
   repeat 2drop ;
@@ -419,9 +431,7 @@ create tok-buf 260 allot
 : endcase
   postpone drop begin ?dup while postpone then repeat ; immediate
 
-: value create , does> @ ;
-: to ' >body state @ if postpone literal postpone ! else ! then
-  ; immediate
+: value create 1 , , does> cell+ @ ;
 : buffer: create allot ;
 
 \ marker: the word's own body remembers where here and latest stood
@@ -538,6 +548,7 @@ create tib 1024 allot
   source nip >in ! ;
 
 : interpret-line ['] interpret catch ?dup if report then ."  ok" cr ;
+: (load-line) ['] interpret catch ?dup if report then ;
 : (quit-loop) begin refill while interpret-line repeat bye ;
 : quit 0 handler ! rp0 rp! (quit-loop) ;
 
@@ -563,6 +574,50 @@ create tib 1024 allot
       ?dup 0= if exit then
     repeat 2drop refill 0= until ; immediate
 : [if] 0= if ['] [else] execute then ; immediate
+
+\ double-number word set, over single-cell ops
+
+: 2rot 2>r 2swap 2r> 2swap ;
+: 2constant create swap , , does> dup @ swap cell+ @ ;
+: 2variable create 0 , 0 , ;
+: 2value create 2 , here 0 , 0 , 2! does> cell+ 2@ ;
+
+: d+ >r swap >r um+ r> r> + + ;
+: d- dnegate d+ ;
+: d= rot = -rot = and ;
+: d0= or 0= ;
+: d0< nip 0< ;
+: d< rot swap 2dup = if 2drop u< else < nip nip then ;
+: du< rot swap 2dup = if 2drop u< else u< nip nip then ;
+: dmax 2over 2over d< if 2swap then 2drop ;
+: dmin 2over 2over d< 0= if 2swap then 2drop ;
+: d2* 2dup d+ ;
+: d2/ ( lo hi -- lo' hi' )
+  dup >r 2/ swap 1 rshift
+  r> [ cell 8 * 1- ] literal lshift or swap ;
+: d>s drop ;
+
+\ m*/ : d1 * n1 / n2 through a triple-cell intermediate. n2 is +n2;
+\ the result is symmetric (doubletest accepts it via ?FLOORED).
+
+: dn* ( lo hi n -- t0 t1 t2 )
+  >r r@ um* rot r> um*
+  >r -rot swap r> um+ rot + ;
+: ut/ ( t0 t1 t2 n2 -- qlo qhi )
+  >r r@ um/mod -rot r> um/mod nip swap ;
+variable dsign
+: m*/ ( dlo dhi n1 n2 -- qlo qhi )
+  >r
+  over 0< over 0< xor dsign !
+  abs >r dabs r> dn* r> ut/
+  dsign @ if dnegate then ;
+
+: d. tuck dabs <# #s rot sign #> type space ;
+: d.r >r tuck dabs <# #s rot sign #> r> over - 0 max spaces type ;
+
+: to-store >body dup @ 1 = if cell+ ! else cell+ 2! then ;
+: to ' state @ if postpone literal postpone to-store else to-store then
+  ; immediate
 
 \ compile every colon word so far to native; the code field is the
 \ only thing that changes, so order does not matter.

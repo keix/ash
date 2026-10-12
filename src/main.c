@@ -45,6 +45,11 @@ load_file (vm_t *vm, const char *path)
   char *buf = slurp (path, &len);
   cell_t pos = 0;
 
+  /* once core.fs has defined the text interpreter, files run through
+     it -- one number path, one error path, all in Forth. The C
+     interpret_source remains only to bootstrap core.fs itself. */
+  dict_entry_t *fw = find_word (vm, "(load-line)", 11);
+
   if (!buf)
     return -1;
   push_source (vm, buf, 0, -1);
@@ -57,7 +62,10 @@ load_file (vm_t *vm, const char *path)
       src->buf = buf + pos;
       src->len = line_len;
       src->in = 0;
-      interpret_source (vm);
+      if (fw)
+        run_xt (vm, entry_xt (fw));
+      else
+        interpret_source (vm);
       pos += line_len + (nl ? 1 : 0);
     }
   pop_source (vm);
