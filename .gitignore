@@ -1,4 +1,9 @@
 /build/
 /ash
-/bench/
 *.o
+
+# bench holds tracked workloads (*.fs) plus local-only artifacts
+/bench/*
+!/bench/fib.fs
+!/bench/loop.fs
+!/bench/sieve.fs

@@ -75,10 +75,21 @@ test-ans: ash
 	if echo "$$out" | grep -E "INCORRECT|WRONG NUMBER|undefined word|uncaught"; then exit 1; fi; \
 	echo "ans tools tests passed"
 
+BENCH := fib loop sieve
+
+bench: ash
+	@echo "fib(40), loop 20M, byte sieve -- jit default, time in user s"
+	@for b in $(BENCH); do \
+	  printf "  %-6s " $$b; \
+	  /usr/bin/env time -f '%U' ./ash bench/$$b.fs >/dev/null 2>bench-t || \
+	    { ./ash bench/$$b.fs >/dev/null; echo "(no timer)"; continue; }; \
+	  cat bench-t; \
+	done; rm -f bench-t
+
 format:
 	clang-format -i src/*.c src/*.h tests/c/*.c
 
 clean:
 	rm -rf build ash
 
-.PHONY: all test test-c test-forth test-jit test-threaded test-session test-gforth test-ans format clean
+.PHONY: all test test-c test-forth test-jit test-threaded test-session test-gforth test-ans bench format clean
