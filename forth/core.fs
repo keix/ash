@@ -619,6 +619,40 @@ variable dsign
 : to ' state @ if postpone literal postpone to-store else to-store then
   ; immediate
 
+\ string word set
+
+: blank bl fill ;
+
+: -trailing ( a u -- a u' )
+  begin dup 0> while
+    2dup + 1- c@ bl = if 1- else exit then
+  repeat ;
+
+: compare ( a1 u1 a2 u2 -- n )
+  rot swap 2dup min 0
+  ?do
+    3 pick i + c@ 3 pick i + c@
+    2dup <> if
+      u< if 2drop 2drop -1 else 2drop 2drop 1 then unloop exit
+    then 2drop
+  loop
+  2swap 2drop - dup if 0> 1 and 2* 1- then ;
+
+2variable (needle)
+: search ( a1 u1 a2 u2 -- a3 u3 f )
+  (needle) 2! 2dup
+  begin dup (needle) 2@ nip u< 0= while
+    over (needle) 2@ nip (needle) 2@ compare 0= if
+      2swap 2drop -1 exit then
+    1 /string
+  repeat
+  2drop 0 ;
+
+: sliteral ( a u -- )
+  ['] (s") , dup ,
+  begin dup 0> while over c@ c, swap 1+ swap 1- repeat
+  2drop align ; immediate
+
 \ compile every colon word so far to native; the code field is the
 \ only thing that changes, so order does not matter.
 
