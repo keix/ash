@@ -587,6 +587,13 @@ prim_eof (vm_t *vm, xt_t xt)
 }
 
 static void
+prim_current_xt (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, (cell_t)&vm->xt_open);
+}
+
+static void
 prim_rp0 (vm_t *vm, xt_t xt)
 {
   (void)xt;
@@ -704,6 +711,7 @@ prim_colon (vm_t *vm, xt_t xt)
     }
   w->flags |= F_HIDDEN;
   *entry_xt (w) = (cell_t)docol;
+  vm->xt_open = entry_xt (w);
   vm->state = -1;
 }
 
@@ -746,15 +754,20 @@ prim_paren_does (vm_t *vm, xt_t xt)
   vm->ip = (xt_t *)rpop (vm);
 }
 
+/* a :noname definition has no header, so latest is not the word
+   being closed -- xt_open is */
 static void
 prim_semi (vm_t *vm, xt_t xt)
 {
+  xt_t w = vm->xt_open;
+
   (void)xt;
   comma (vm, (cell_t)vm->xt_exit);
-  vm->latest->flags &= ~F_HIDDEN;
+  if (w && w == entry_xt (vm->latest))
+    vm->latest->flags &= ~F_HIDDEN;
   vm->state = 0;
-  if (vm->jit_on > 0)
-    jit_xt (vm, entry_xt (vm->latest));
+  if (w && vm->jit_on > 0)
+    jit_xt (vm, w);
 }
 
 static void
@@ -878,6 +891,7 @@ register_prims (vm_t *vm)
   defprim (vm, "(set-source)", prim_set_source);
   defprim (vm, "(eof?)", prim_eof);
   defprim (vm, "rp0", prim_rp0);
+  defprim (vm, "current-xt", prim_current_xt);
   defprim (vm, "sp0", prim_sp0);
   defprim (vm, "(push-source)", prim_push_source);
   defprim (vm, "(pop-source)", prim_pop_source);

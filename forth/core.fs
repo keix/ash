@@ -190,11 +190,10 @@ variable leave-link
 : latest-xt latest entry>xt ;
 
 \ recurse compiles the definition being made, which :noname words do
-\ not register in the dictionary -- so : itself, re-defined in forth
-\ over the kernel's, records the xt of whatever is open.
+\ not register in the dictionary -- so the kernel's current-xt holds
+\ the xt of whatever is open: : sets it in C, :noname below in forth,
+\ and ; finishes that one rather than latest.
 
-variable current-xt
-: : [ ' : ] literal execute latest-xt current-xt ! ;
 : recurse current-xt @ , ; immediate
 
 \ postpone appends compilation semantics: an immediate word's xt is
