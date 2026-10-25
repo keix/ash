@@ -14,12 +14,37 @@ push_source (vm_t *vm, const char *buf, cell_t len, cell_t source_id)
   src->len = len;
   src->in = 0;
   src->source_id = source_id;
+  src->fbuf = NULL;
+  src->flen = 0;
+  src->fpos = 0;
 }
 
 void
 pop_source (vm_t *vm)
 {
   vm->src_depth--;
+}
+
+/* Advance a file source to its next line: SOURCE becomes that line,
+   >IN resets. Returns 0 when the whole text is consumed. This is the
+   refill of a file, shared by the C boot loader and the Forth refill. */
+int
+refill_line (vm_t *vm)
+{
+  input_source_t *src = active_source (vm);
+  const char *all = src->fbuf;
+  cell_t start = src->fpos;
+  cell_t i = start;
+
+  if (!all || start >= src->flen)
+    return 0;
+  while (i < src->flen && all[i] != '\n')
+    i++;
+  src->buf = all + start;
+  src->len = i - start;
+  src->in = 0;
+  src->fpos = i < src->flen ? i + 1 : i;
+  return 1;
 }
 
 /* Cut one whitespace-delimited token from the active input source,

@@ -12,9 +12,11 @@ decision changes, in the same commit.
 
 Ash targets the ANS Forth Core word set, with selected later-standard
 words where they simplify the system. The Core word set (133/133)
-and the Core Extensions word set are complete; the Forth-2012 test
-suite's Core and Core-Ext tests pass (`make test-ans`: prelimtest,
-core.fr, coreplustest, coreexttest). Ash claims the label with the
+the Core Extensions word set, the Double-Number word set, and the
+String word set are complete; the Forth-2012 test suite's Core,
+Core-Ext, and Double tests pass, as do the String base-word tests
+(the String Extensions `substitute replaces unescape` are not yet
+implemented). Ash claims the label with the
 phrases the standard requires for the word sets it touches:
 
 ```text
@@ -22,8 +24,8 @@ ANS Forth System
 Providing the Core Extensions word set
 Providing the Exception word set
 Providing the Exception Extensions word set
-Providing name(s) from the Double-Number word set
-Providing name(s) from the String word set
+Providing the Double-Number word set
+Providing the String word set
 Providing name(s) from the Programming-Tools Extensions word set
 ```
 
@@ -94,4 +96,8 @@ The word-by-word list is the Beyond Core section of
   `sp@ sp! rp@ rp!`.
 - Ash internals exposed as words: `lit`, `branch`, `0branch`,
   `(does>)`, and the other parenthesized names STATUS.md lists.
+- Programming-Tools Extensions present: `ahead cs-pick cs-roll
+  [if] [else] [then] [defined] [undefined] n>r nr> synonym` (the
+  official toolstest passes); the base `.s ? dump see words` are not
+  yet provided, so the label stays "name(s) from".
 - Interactive startup prints a license banner when stdin is a tty.

@@ -35,31 +35,31 @@ slurp (const char *path, cell_t *len)
   return buf;
 }
 
-/* Interpret a file line by line, the ANS input model: SOURCE is the
-   current line and >IN moves within it. Definitions span lines via
-   state; an abort discards only the offending line. */
+/* The ANS file input model: the whole text is one source, SOURCE is
+   its current line, and refill advances across lines -- so a parsing
+   word (REFILL, [IF]) can span lines. Once core.fs defines the Forth
+   text interpreter, the file runs through (load-file); the C
+   interpret_source loop remains only to bootstrap core.fs itself. */
 static int
 load_file (vm_t *vm, const char *path)
 {
   cell_t len;
   char *buf = slurp (path, &len);
-  cell_t pos = 0;
+  input_source_t *src;
+  dict_entry_t *fw = find_word (vm, "(load-file)", 11);
 
   if (!buf)
     return -1;
-  push_source (vm, buf, 0, -1);
-  while (pos < len)
-    {
-      input_source_t *src = active_source (vm);
-      char *nl = memchr (buf + pos, '\n', (size_t)(len - pos));
-      cell_t line_len = nl ? (cell_t)(nl - (buf + pos)) : len - pos;
-
-      src->buf = buf + pos;
-      src->len = line_len;
-      src->in = 0;
+  push_source (vm, "", 0, 1); /* file source: id > 0 */
+  src = active_source (vm);
+  src->fbuf = buf;
+  src->flen = len;
+  src->fpos = 0;
+  if (fw)
+    run_xt (vm, entry_xt (fw));
+  else
+    while (refill_line (vm))
       interpret_source (vm);
-      pos += line_len + (nl ? 1 : 0);
-    }
   pop_source (vm);
   free (buf);
   return 0;

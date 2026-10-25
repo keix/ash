@@ -36,10 +36,13 @@ typedef struct dict_entry
 
 typedef struct
 {
-  const char *buf;
+  const char *buf; /* SOURCE: the current line */
   cell_t len;
   cell_t in;        /* >IN: parse position within buf */
-  cell_t source_id; /* 0 = terminal, -1 = string, else fileid */
+  cell_t source_id; /* 0 = terminal, -1 = string, >0 = file */
+  const char *fbuf; /* a file source keeps the whole text here, */
+  cell_t flen;      /* with fpos the offset of the next line, so */
+  cell_t fpos;      /* refill can advance across lines */
 } input_source_t;
 
 struct vm
@@ -92,6 +95,7 @@ void run_xt (vm_t *vm, xt_t xt);
 input_source_t *active_source (vm_t *vm);
 void push_source (vm_t *vm, const char *buf, cell_t len, cell_t source_id);
 void pop_source (vm_t *vm);
+int refill_line (vm_t *vm);
 const char *next_token (vm_t *vm, size_t *len);
 
 /* interp.c */
