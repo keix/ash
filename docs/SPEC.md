@@ -78,7 +78,8 @@ documentation the label obliges.
 
 ## Environmental restrictions
 
-- `forth/core.fs` is loaded relative to the working directory.
+- `forth/core.fs` is loaded relative to the working directory; ash
+  refuses to start without it.
 - `refill` answers false for every source; the terminal case
   completes when the quit loop moves to Forth, and the Core
   Extensions label upgrades from "name(s) from" at the same moment.

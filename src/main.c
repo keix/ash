@@ -99,7 +99,14 @@ main (int argc, char **argv)
 
   register_prims (&vm);
   jit_register (&vm);
-  load_file (&vm, CORE_FS);
+  /* without core.fs the kernel has no . and no error reporting: a
+     silent half-forth is worse than refusing to start */
+  if (load_file (&vm, CORE_FS) != 0)
+    {
+      fprintf (stderr, "cannot open %s: run ash from the repository root\n",
+               CORE_FS);
+      return 1;
+    }
 
   /* gforth-shaped invocation: interpret the named files, then exit */
   if (argc > 1)
