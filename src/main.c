@@ -70,10 +70,12 @@ enum
   DSTACK_CELLS = 1024,
   RSTACK_CELLS = 1024,
   DICT_BYTES = 1 << 16,
-  TIB_BYTES = 1024
+  TIB_BYTES = 1024,
+  DSTACK_SLACK = 64 /* below dsp_lim: overflow is caught between tokens,
+                       so a token's overshoot must stay in the array */
 };
 
-static cell_t dstack[DSTACK_CELLS];
+static cell_t dstack[DSTACK_SLACK + DSTACK_CELLS];
 static cell_t rstack[RSTACK_CELLS];
 static uint8_t dictionary[DICT_BYTES];
 static char tib[TIB_BYTES];
@@ -87,9 +89,9 @@ main (int argc, char **argv)
      write order -- a terminal already does this; a pipe would not */
   setvbuf (stdout, NULL, _IOLBF, 0);
 
-  vm.dsp = vm.dsp0 = dstack + DSTACK_CELLS;
+  vm.dsp = vm.dsp0 = dstack + DSTACK_SLACK + DSTACK_CELLS;
   vm.rsp = vm.rsp0 = rstack + RSTACK_CELLS;
-  vm.dsp_lim = dstack;
+  vm.dsp_lim = dstack + DSTACK_SLACK;
   vm.rsp_lim = rstack;
   vm.here = dictionary;
   vm.here_lim = dictionary + DICT_BYTES;

@@ -607,6 +607,13 @@ prim_sp0 (vm_t *vm, xt_t xt)
   push (vm, (cell_t)vm->dsp0);
 }
 
+static void
+prim_sp_lim (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, (cell_t)vm->dsp_lim);
+}
+
 /* ( c-addr u id -- flag ): false when the source stack is full, so
    forth can throw -- ip stays untouched, as it must under the JIT */
 static void
@@ -893,6 +900,7 @@ register_prims (vm_t *vm)
   defprim (vm, "rp0", prim_rp0);
   defprim (vm, "current-xt", prim_current_xt);
   defprim (vm, "sp0", prim_sp0);
+  defprim (vm, "sp-lim", prim_sp_lim);
   defprim (vm, "(push-source)", prim_push_source);
   defprim (vm, "(pop-source)", prim_pop_source);
   defprim (vm, "align", prim_align);

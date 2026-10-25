@@ -115,8 +115,8 @@ Ash internals (forth): ,string latest-xt entry>xt mu/mod ud*
   ,loop-check handler uncaught abort-msg abort-len (abort")
   (number) here! src-c@+ s"-buf jit-all
 Ash internals (C): latest latest! lit branch 0branch (does>)
-  (s") (c") (abort) (push-source) (pop-source) current-xt jit
-  jit-on jit-off
+  (s") (c") (abort) (push-source) (pop-source) current-xt sp-lim
+  jit jit-on jit-off
 ```
 
 ## Deviations and spec decisions

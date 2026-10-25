@@ -399,6 +399,7 @@ create tok-buf 260 allot
       else state @ if postpone 2literal then then
     then
     depth 0< if -4 throw then
+    sp@ sp-lim u< if -3 throw then
   repeat 2drop ;
 
 : evaluate
@@ -538,10 +539,11 @@ create tib 1024 allot
 : report
   dup -13 = if drop ." undefined word: " last-tok @ last-len @ type cr
   else dup -4 = if drop ." stack underflow" cr
+  else dup -3 = if drop ." stack overflow" cr
   else dup -1 = if drop
   else dup -2 = if drop abort-msg @ abort-len @ type cr
   else ." uncaught throw: " . cr
-  then then then then
+  then then then then then
   begin depth 0> while drop repeat
   0 state !
   source nip >in ! ;
