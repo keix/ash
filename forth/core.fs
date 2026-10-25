@@ -402,7 +402,9 @@ create tok-buf 260 allot
     depth 0< if -4 throw then
   repeat 2drop ;
 
-: evaluate -1 (push-source) ['] interpret catch (pop-source) throw ;
+: evaluate
+  -1 (push-source) 0= abort" source stack overflow"
+  ['] interpret catch (pop-source) throw ;
 
 \ core extension words, all forth
 

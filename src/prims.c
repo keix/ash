@@ -600,6 +600,8 @@ prim_sp0 (vm_t *vm, xt_t xt)
   push (vm, (cell_t)vm->dsp0);
 }
 
+/* ( c-addr u id -- flag ): false when the source stack is full, so
+   forth can throw -- ip stays untouched, as it must under the JIT */
 static void
 prim_push_source (vm_t *vm, xt_t xt)
 {
@@ -610,13 +612,11 @@ prim_push_source (vm_t *vm, xt_t xt)
   (void)xt;
   if (vm->src_depth + 1 >= SOURCE_DEPTH)
     {
-      fprintf (stderr, "source stack overflow\n");
-      abort_line (vm);
-      vm->rsp = vm->rsp0;
-      vm->ip = NULL;
+      push (vm, 0);
       return;
     }
   push_source (vm, buf, len, id);
+  push (vm, -1);
 }
 
 static void
