@@ -102,30 +102,30 @@ prim_rot (vm_t *vm, xt_t xt)
   push (vm, a);
 }
 
-/* arithmetic */
+/* arithmetic: wraps, through unsigned -- signed overflow is C UB */
 
 static void
 prim_add (vm_t *vm, xt_t xt)
 {
   (void)xt;
-  cell_t b = pop (vm);
-  push (vm, pop (vm) + b);
+  uintptr_t b = (uintptr_t)pop (vm);
+  push (vm, (cell_t)((uintptr_t)pop (vm) + b));
 }
 
 static void
 prim_sub (vm_t *vm, xt_t xt)
 {
   (void)xt;
-  cell_t b = pop (vm);
-  push (vm, pop (vm) - b);
+  uintptr_t b = (uintptr_t)pop (vm);
+  push (vm, (cell_t)((uintptr_t)pop (vm) - b));
 }
 
 static void
 prim_mul (vm_t *vm, xt_t xt)
 {
   (void)xt;
-  cell_t b = pop (vm);
-  push (vm, pop (vm) * b);
+  uintptr_t b = (uintptr_t)pop (vm);
+  push (vm, (cell_t)((uintptr_t)pop (vm) * b));
 }
 
 /* unsigned 64x64 -> 128 multiply, portable 32-bit halves. The cell
@@ -177,7 +177,8 @@ prim_um_slash_mod (vm_t *vm, xt_t xt)
   push (vm, (cell_t)q);
 }
 
-/* logic and shifts. rshift is logical, per ANS */
+/* logic and shifts. rshift is logical, per ANS; a count of 64 or
+   more is ambiguous in ANS and UB in C, so it shifts everything out */
 
 static void
 prim_and (vm_t *vm, xt_t xt)
@@ -214,16 +215,18 @@ static void
 prim_lshift (vm_t *vm, xt_t xt)
 {
   (void)xt;
-  cell_t u = pop (vm);
-  push (vm, (cell_t)((uintptr_t)pop (vm) << u));
+  uintptr_t u = (uintptr_t)pop (vm);
+  uintptr_t x = (uintptr_t)pop (vm);
+  push (vm, u < 64 ? (cell_t)(x << u) : 0);
 }
 
 static void
 prim_rshift (vm_t *vm, xt_t xt)
 {
   (void)xt;
-  cell_t u = pop (vm);
-  push (vm, (cell_t)((uintptr_t)pop (vm) >> u));
+  uintptr_t u = (uintptr_t)pop (vm);
+  uintptr_t x = (uintptr_t)pop (vm);
+  push (vm, u < 64 ? (cell_t)(x >> u) : 0);
 }
 
 /* return stack */
