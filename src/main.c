@@ -71,11 +71,12 @@ enum
   RSTACK_CELLS = 1024,
   DICT_BYTES = 1 << 16,
   TIB_BYTES = 1024,
-  DSTACK_SLACK = 64 /* below dsp_lim: overflow is caught between tokens,
-                       so a token's overshoot must stay in the array */
+  DSTACK_SLACK = 64 /* past each end: overflow and underflow are caught
+                       between tokens, so a token's overshoot must
+                       stay in the array */
 };
 
-static cell_t dstack[DSTACK_SLACK + DSTACK_CELLS];
+static cell_t dstack[DSTACK_SLACK + DSTACK_CELLS + DSTACK_SLACK];
 static cell_t rstack[RSTACK_CELLS];
 static uint8_t dictionary[DICT_BYTES];
 static char tib[TIB_BYTES];
