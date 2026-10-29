@@ -1,6 +1,10 @@
+#define _DEFAULT_SOURCE /* sigaction, MAP_ANONYMOUS under -std=c11 */
+
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 #include <unistd.h>
 
 #include "ash.h"
@@ -70,34 +74,119 @@ enum
   DSTACK_CELLS = 1024,
   RSTACK_CELLS = 1024,
   DICT_BYTES = 1 << 16,
-  TIB_BYTES = 1024
+  TIB_BYTES = 1024,
+  DSTACK_SLACK = 64 /* past each end: overflow and underflow are caught
+                       between tokens, so a token's overshoot must
+                       stay in the stack's own memory */
 };
 
-static cell_t dstack[DSTACK_CELLS];
-static cell_t rstack[RSTACK_CELLS];
 static uint8_t dictionary[DICT_BYTES];
 static char tib[TIB_BYTES];
+
+/* Each stack is mapped between two PROT_NONE guard pages. The
+   between-token checks cannot see a single word running past an end
+   -- a runaway loop, unbounded recursion -- so the guards catch it:
+   the access faults at once instead of overwriting whatever lies
+   next to the stack, and the handler names the boundary. */
+
+typedef struct
+{
+  const uint8_t *lo, *hi;
+  const char *msg;
+  size_t len;
+} guard_t;
+
+static guard_t guards[4];
+static int nguards;
+
+static void
+add_guard (const uint8_t *lo, size_t n, const char *msg)
+{
+  guards[nguards].lo = lo;
+  guards[nguards].hi = lo + n;
+  guards[nguards].msg = msg;
+  guards[nguards].len = strlen (msg);
+  nguards++;
+}
+
+/* a stack of at least cells cells; returns its high end, flush
+   against the upper guard. Page rounding is spare room at the low end. */
+static cell_t *
+map_stack (size_t cells, const char *over, const char *under)
+{
+  size_t page = (size_t)sysconf (_SC_PAGESIZE);
+  size_t body = (cells * sizeof (cell_t) + page - 1) / page * page;
+  uint8_t *m = mmap (NULL, body + 2 * page, PROT_NONE,
+                     MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+  if (m == MAP_FAILED
+      || mprotect (m + page, body, PROT_READ | PROT_WRITE) != 0)
+    {
+      perror ("ash: cannot map a stack");
+      exit (1);
+    }
+  add_guard (m, page, over);
+  add_guard (m + page + body, page, under);
+  return (cell_t *)(m + page + body);
+}
+
+/* async-signal-safe: write and _exit only. A fault outside the guards
+   is a real crash: SA_RESETHAND makes it refault with the default. */
+static void
+on_segv (int sig, siginfo_t *si, void *ctx)
+{
+  const uint8_t *a = si->si_addr;
+
+  (void)sig;
+  (void)ctx;
+  for (int i = 0; i < nguards; i++)
+    if (a >= guards[i].lo && a < guards[i].hi)
+      {
+        ssize_t n = write (STDERR_FILENO, guards[i].msg, guards[i].len);
+
+        (void)n;
+        _exit (1);
+      }
+}
 
 int
 main (int argc, char **argv)
 {
   vm_t vm = { 0 };
+  cell_t *dtop = map_stack (DSTACK_SLACK + DSTACK_CELLS + DSTACK_SLACK,
+                            "data stack overflow\n", "data stack underflow\n");
+  cell_t *rtop = map_stack (RSTACK_CELLS, "return stack overflow\n",
+                            "return stack underflow\n");
+  struct sigaction sa;
+
+  memset (&sa, 0, sizeof sa);
+  sa.sa_sigaction = on_segv;
+  sa.sa_flags = SA_SIGINFO | SA_RESETHAND;
+  sigemptyset (&sa.sa_mask);
+  sigaction (SIGSEGV, &sa, NULL);
 
   /* line-buffer stdout so its diagnostics and stderr's interleave in
      write order -- a terminal already does this; a pipe would not */
   setvbuf (stdout, NULL, _IOLBF, 0);
 
-  vm.dsp = vm.dsp0 = dstack + DSTACK_CELLS;
-  vm.rsp = vm.rsp0 = rstack + RSTACK_CELLS;
-  vm.dsp_lim = dstack;
-  vm.rsp_lim = rstack;
+  vm.dsp = vm.dsp0 = dtop - DSTACK_SLACK;
+  vm.rsp = vm.rsp0 = rtop;
+  vm.dsp_lim = vm.dsp0 - DSTACK_CELLS;
+  vm.rsp_lim = rtop - RSTACK_CELLS;
   vm.here = dictionary;
   vm.here_lim = dictionary + DICT_BYTES;
   vm.base = 10;
 
   register_prims (&vm);
   jit_register (&vm);
-  load_file (&vm, CORE_FS);
+  /* without core.fs the kernel has no . and no error reporting: a
+     silent half-forth is worse than refusing to start */
+  if (load_file (&vm, CORE_FS) != 0)
+    {
+      fprintf (stderr, "cannot open %s: run ash from the repository root\n",
+               CORE_FS);
+      return 1;
+    }
 
   /* gforth-shaped invocation: interpret the named files, then exit */
   if (argc > 1)

@@ -190,11 +190,10 @@ variable leave-link
 : latest-xt latest entry>xt ;
 
 \ recurse compiles the definition being made, which :noname words do
-\ not register in the dictionary -- so : itself, re-defined in forth
-\ over the kernel's, records the xt of whatever is open.
+\ not register in the dictionary -- so the kernel's current-xt holds
+\ the xt of whatever is open: : sets it in C, :noname below in forth,
+\ and ; finishes that one rather than latest.
 
-variable current-xt
-: : [ ' : ] literal execute latest-xt current-xt ! ;
 : recurse current-xt @ , ; immediate
 
 \ postpone appends compilation semantics: an immediate word's xt is
@@ -400,9 +399,12 @@ create tok-buf 260 allot
       else state @ if postpone 2literal then then
     then
     depth 0< if -4 throw then
+    sp@ sp-lim u< if -3 throw then
   repeat 2drop ;
 
-: evaluate -1 (push-source) ['] interpret catch (pop-source) throw ;
+: evaluate
+  -1 (push-source) 0= abort" source stack overflow"
+  ['] interpret catch (pop-source) throw ;
 
 \ core extension words, all forth
 
@@ -537,10 +539,11 @@ create tib 1024 allot
 : report
   dup -13 = if drop ." undefined word: " last-tok @ last-len @ type cr
   else dup -4 = if drop ." stack underflow" cr
+  else dup -3 = if drop ." stack overflow" cr
   else dup -1 = if drop
   else dup -2 = if drop abort-msg @ abort-len @ type cr
   else ." uncaught throw: " . cr
-  then then then then
+  then then then then then
   begin depth 0> while drop repeat
   0 state !
   source nip >in ! ;

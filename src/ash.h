@@ -67,6 +67,7 @@ struct vm
 
   xt_t xt_lit;  /* compiled by literals in compile state */
   xt_t xt_exit; /* compiled by ; */
+  xt_t xt_open; /* the definition : or :noname opened: ; and recurse */
 
   cell_t jit_on; /* <0 off, 0 hot words burn (default), >0 eager at ; */
 };

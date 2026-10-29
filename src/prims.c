@@ -102,30 +102,30 @@ prim_rot (vm_t *vm, xt_t xt)
   push (vm, a);
 }
 
-/* arithmetic */
+/* arithmetic: wraps, through unsigned -- signed overflow is C UB */
 
 static void
 prim_add (vm_t *vm, xt_t xt)
 {
   (void)xt;
-  cell_t b = pop (vm);
-  push (vm, pop (vm) + b);
+  uintptr_t b = (uintptr_t)pop (vm);
+  push (vm, (cell_t)((uintptr_t)pop (vm) + b));
 }
 
 static void
 prim_sub (vm_t *vm, xt_t xt)
 {
   (void)xt;
-  cell_t b = pop (vm);
-  push (vm, pop (vm) - b);
+  uintptr_t b = (uintptr_t)pop (vm);
+  push (vm, (cell_t)((uintptr_t)pop (vm) - b));
 }
 
 static void
 prim_mul (vm_t *vm, xt_t xt)
 {
   (void)xt;
-  cell_t b = pop (vm);
-  push (vm, pop (vm) * b);
+  uintptr_t b = (uintptr_t)pop (vm);
+  push (vm, (cell_t)((uintptr_t)pop (vm) * b));
 }
 
 /* unsigned 64x64 -> 128 multiply, portable 32-bit halves. The cell
@@ -177,7 +177,8 @@ prim_um_slash_mod (vm_t *vm, xt_t xt)
   push (vm, (cell_t)q);
 }
 
-/* logic and shifts. rshift is logical, per ANS */
+/* logic and shifts. rshift is logical, per ANS; a count of 64 or
+   more is ambiguous in ANS and UB in C, so it shifts everything out */
 
 static void
 prim_and (vm_t *vm, xt_t xt)
@@ -214,16 +215,18 @@ static void
 prim_lshift (vm_t *vm, xt_t xt)
 {
   (void)xt;
-  cell_t u = pop (vm);
-  push (vm, (cell_t)((uintptr_t)pop (vm) << u));
+  uintptr_t u = (uintptr_t)pop (vm);
+  uintptr_t x = (uintptr_t)pop (vm);
+  push (vm, u < 64 ? (cell_t)(x << u) : 0);
 }
 
 static void
 prim_rshift (vm_t *vm, xt_t xt)
 {
   (void)xt;
-  cell_t u = pop (vm);
-  push (vm, (cell_t)((uintptr_t)pop (vm) >> u));
+  uintptr_t u = (uintptr_t)pop (vm);
+  uintptr_t x = (uintptr_t)pop (vm);
+  push (vm, u < 64 ? (cell_t)(x >> u) : 0);
 }
 
 /* return stack */
@@ -584,6 +587,13 @@ prim_eof (vm_t *vm, xt_t xt)
 }
 
 static void
+prim_current_xt (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, (cell_t)&vm->xt_open);
+}
+
+static void
 prim_rp0 (vm_t *vm, xt_t xt)
 {
   (void)xt;
@@ -598,6 +608,15 @@ prim_sp0 (vm_t *vm, xt_t xt)
 }
 
 static void
+prim_sp_lim (vm_t *vm, xt_t xt)
+{
+  (void)xt;
+  push (vm, (cell_t)vm->dsp_lim);
+}
+
+/* ( c-addr u id -- flag ): false when the source stack is full, so
+   forth can throw -- ip stays untouched, as it must under the JIT */
+static void
 prim_push_source (vm_t *vm, xt_t xt)
 {
   cell_t id = pop (vm);
@@ -607,13 +626,11 @@ prim_push_source (vm_t *vm, xt_t xt)
   (void)xt;
   if (vm->src_depth + 1 >= SOURCE_DEPTH)
     {
-      fprintf (stderr, "source stack overflow\n");
-      abort_line (vm);
-      vm->rsp = vm->rsp0;
-      vm->ip = NULL;
+      push (vm, 0);
       return;
     }
   push_source (vm, buf, len, id);
+  push (vm, -1);
 }
 
 static void
@@ -701,6 +718,7 @@ prim_colon (vm_t *vm, xt_t xt)
     }
   w->flags |= F_HIDDEN;
   *entry_xt (w) = (cell_t)docol;
+  vm->xt_open = entry_xt (w);
   vm->state = -1;
 }
 
@@ -743,15 +761,20 @@ prim_paren_does (vm_t *vm, xt_t xt)
   vm->ip = (xt_t *)rpop (vm);
 }
 
+/* a :noname definition has no header, so latest is not the word
+   being closed -- xt_open is */
 static void
 prim_semi (vm_t *vm, xt_t xt)
 {
+  xt_t w = vm->xt_open;
+
   (void)xt;
   comma (vm, (cell_t)vm->xt_exit);
-  vm->latest->flags &= ~F_HIDDEN;
+  if (w && w == entry_xt (vm->latest))
+    vm->latest->flags &= ~F_HIDDEN;
   vm->state = 0;
-  if (vm->jit_on > 0)
-    jit_xt (vm, entry_xt (vm->latest));
+  if (w && vm->jit_on > 0)
+    jit_xt (vm, w);
 }
 
 static void
@@ -875,7 +898,9 @@ register_prims (vm_t *vm)
   defprim (vm, "(set-source)", prim_set_source);
   defprim (vm, "(eof?)", prim_eof);
   defprim (vm, "rp0", prim_rp0);
+  defprim (vm, "current-xt", prim_current_xt);
   defprim (vm, "sp0", prim_sp0);
+  defprim (vm, "sp-lim", prim_sp_lim);
   defprim (vm, "(push-source)", prim_push_source);
   defprim (vm, "(pop-source)", prim_pop_source);
   defprim (vm, "align", prim_align);

@@ -58,7 +58,7 @@ documentation the label obliges.
 | Condition | Behavior |
 |---|---|
 | undefined word | `throw -13`; the quit loop names the token (`undefined word: x`), clears the stacks, and resumes. Interpreting from a file reports and discards the line in the C bootstrap loop |
-| stack underflow / overflow | the quit loop's interpret throws -4 between words and reports `stack underflow`; a single word can still run past the ends unchecked |
+| stack underflow / overflow | the quit loop's interpret throws -4 / -3 between words and reports `stack underflow` / `stack overflow`; 64 spare cells past each end of the data stack absorb the token that crossed. Inside a single word the stacks run unchecked into guard pages: ash reports `data stack overflow`, `return stack underflow` and the like, and exits with status 1 (fatal) |
 | dictionary overflow | `allot` reports `dictionary full` and exits (fatal) |
 | name empty or over 255 chars | rejected; `:` and `create` report and discard the line |
 | `BASE` outside 2..36 | never becomes C UB: number parsing rejects the token, `.` falls back to decimal |
@@ -78,7 +78,8 @@ documentation the label obliges.
 
 ## Environmental restrictions
 
-- `forth/core.fs` is loaded relative to the working directory.
+- `forth/core.fs` is loaded relative to the working directory; ash
+  refuses to start without it.
 - `refill` answers false for every source; the terminal case
   completes when the quit loop moves to Forth, and the Core
   Extensions label upgrades from "name(s) from" at the same moment.
