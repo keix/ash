@@ -47,7 +47,7 @@ documentation the label obliges.
 | word name length | 1..255 characters |
 | data stack | 1024 cells |
 | return stack | 1024 cells |
-| data space | one contiguous region, 64 KiB |
+| data space | one contiguous region, 256 KiB |
 | input sources | terminal and files line by line (`SOURCE` is the current line), string; nesting depth 8 |
 | `SOURCE-ID` values | 0 = terminal, -1 = string |
 | whitespace | any char <= 0x20 delimits tokens |

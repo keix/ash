@@ -73,7 +73,7 @@ enum
 {
   DSTACK_CELLS = 1024,
   RSTACK_CELLS = 1024,
-  DICT_BYTES = 1 << 16,
+  DICT_BYTES = 1 << 18,
   TIB_BYTES = 1024,
   DSTACK_SLACK = 64 /* past each end: overflow and underflow are caught
                        between tokens, so a token's overshoot must
