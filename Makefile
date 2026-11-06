@@ -59,19 +59,24 @@ test-gforth:
 ANS_SUITE ?= ../forth-standard-test-suite/src
 
 test-ans: ash
-	@out=$$(./ash $(ANS_SUITE)/prelimtest.fth 2>&1); \
+	@out=$$(./ash $(ANS_SUITE)/prelimtest.fth 2>&1); rc=$$?; \
+	[ $$rc = 0 ] || { echo "$$out"; echo "ash exited with status $$rc"; exit 1; }; \
 	echo "$$out" | grep -q "^0 tests failed" || { echo "$$out"; exit 1; }; \
 	echo "ans preliminary tests passed"; \
-	out=$$(./ash $(ANS_SUITE)/tester.fr $(ANS_SUITE)/core.fr $(ANS_SUITE)/coreplustest.fth < /dev/null 2>&1); \
+	out=$$(./ash $(ANS_SUITE)/tester.fr $(ANS_SUITE)/core.fr $(ANS_SUITE)/coreplustest.fth < /dev/null 2>&1); rc=$$?; \
+	[ $$rc = 0 ] || { echo "$$out"; echo "ash exited with status $$rc"; exit 1; }; \
 	if echo "$$out" | grep -E "INCORRECT|WRONG NUMBER|undefined word|uncaught"; then exit 1; fi; \
 	echo "ans core and coreplus tests passed"; \
-	out=$$(./ash $(ANS_SUITE)/tester.fr $(ANS_SUITE)/utilities.fth $(ANS_SUITE)/errorreport.fth $(ANS_SUITE)/core.fr $(ANS_SUITE)/coreexttest.fth < /dev/null 2>&1); \
+	out=$$(./ash $(ANS_SUITE)/tester.fr $(ANS_SUITE)/utilities.fth $(ANS_SUITE)/errorreport.fth $(ANS_SUITE)/core.fr $(ANS_SUITE)/coreexttest.fth < /dev/null 2>&1); rc=$$?; \
+	[ $$rc = 0 ] || { echo "$$out"; echo "ash exited with status $$rc"; exit 1; }; \
 	if echo "$$out" | grep -E "INCORRECT|WRONG NUMBER|undefined word|uncaught"; then exit 1; fi; \
 	echo "ans core-ext tests passed"; \
-	out=$$(./ash $(ANS_SUITE)/tester.fr $(ANS_SUITE)/utilities.fth $(ANS_SUITE)/errorreport.fth $(ANS_SUITE)/core.fr $(ANS_SUITE)/doubletest.fth < /dev/null 2>&1); \
+	out=$$(./ash $(ANS_SUITE)/tester.fr $(ANS_SUITE)/utilities.fth $(ANS_SUITE)/errorreport.fth $(ANS_SUITE)/core.fr $(ANS_SUITE)/doubletest.fth < /dev/null 2>&1); rc=$$?; \
+	[ $$rc = 0 ] || { echo "$$out"; echo "ash exited with status $$rc"; exit 1; }; \
 	if echo "$$out" | grep -E "INCORRECT|WRONG NUMBER|undefined word|uncaught"; then exit 1; fi; \
 	echo "ans double tests passed"; \
-	out=$$(./ash $(ANS_SUITE)/tester.fr $(ANS_SUITE)/utilities.fth $(ANS_SUITE)/errorreport.fth $(ANS_SUITE)/core.fr $(ANS_SUITE)/toolstest.fth < /dev/null 2>&1); \
+	out=$$(./ash $(ANS_SUITE)/tester.fr $(ANS_SUITE)/utilities.fth $(ANS_SUITE)/errorreport.fth $(ANS_SUITE)/core.fr $(ANS_SUITE)/toolstest.fth < /dev/null 2>&1); rc=$$?; \
+	[ $$rc = 0 ] || { echo "$$out"; echo "ash exited with status $$rc"; exit 1; }; \
 	if echo "$$out" | grep -E "INCORRECT|WRONG NUMBER|undefined word|uncaught"; then exit 1; fi; \
 	echo "ans tools tests passed"
 
